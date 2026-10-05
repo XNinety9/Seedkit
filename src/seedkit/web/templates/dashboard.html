@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, chart, tracker_dot, hnr_badge, empty %}
+{% block title %}{{ _("Tableau de bord") }}{% endblock %}
+{% block content %}
+{% set o = d.overview %}
+<header class="page-head">
+  <div>
+    <div class="eyebrow">{{ _("Tableau de bord") }}</div>
+    <h1>{{ _("Ta seedbox en un coup d'œil") }}</h1>
+    <p>
+      {% if o.history_start %}
+        {% if d.history_days < 1 %}{{ _("Historique en construction depuis {since} : les statistiques par période s'affinent à chaque collecte.", since=(now - o.history_start) | duration) }}
+        {% else %}{{ _("{days} jours d'historique, collecte toutes les {minutes} min.", days=d.history_days | number(1), minutes=settings.seedkit_interval_minutes) }}{% endif %}
+      {% else %}{{ _("En attente de la première collecte…") }}{% endif %}
+    </p>
+  </div>
+</header>
+
+<section class="grid cols-4">
+  <article class="card hero span-2">
+    {% set v, u = o.uploaded | size_parts %}
+    <div class="hero-label">{{ icon("arrow-up", "sm") }} {{ _("Uploadé au total") }}</div>
+    <div class="row" style="align-items:baseline; gap:10px; margin-top:10px">
+      <span class="hero-value">{{ v }}</span><span class="hero-value" style="font-size:28px">{{ u }}</span>
+    </div>
+    <div class="hero-meta">
+      <span>{{ _("Ratio global <strong>{ratio}</strong>", ratio=o.ratio | ratio) }}</span>
+      <span>{{ _("<strong>{n}</strong> torrents", n=o.count | number) }}</span>
+      <span>{{ _("<strong>{size}</strong> stockés", size=o.size | size) }}</span>
+      <span>{{ _("<strong>{n}</strong> en upload actif", n=o.active) }}</span>
+    </div>
+  </article>
+
+  <article class="card tile">
+    <div class="tile-label">{{ icon("activity", "sm") }} {{ _("Upload 24 h") }}</div>
+    {% set v, u = o.uploaded_24h | size_parts %}
+    <div class="tile-value">{{ v }}<small>{{ u }}</small></div>
+    {% if d.charts.hourly["values"] | length > 1 %}
+      {{ chart("spark", d.charts.hourly | combine_spark("--accent"), "spark") }}
+    {% else %}<div class="tile-foot">{{ _("La courbe horaire apparaît après deux collectes.") }}</div>{% endif %}
+  </article>
+
+  <article class="card tile">
+    <div class="tile-label">{{ icon("arrow-up", "sm") }} {{ _("Upload 7 jours") }}</div>
+    {% set v, u = o.uploaded_7d | size_parts %}
+    <div class="tile-value">{{ v }}<small>{{ u }}</small></div>
+    {% if d.charts.daily_total["values"] | length > 1 %}
+      {{ chart("spark", d.charts.daily_total | combine_spark("--accent-2"), "spark") }}
+    {% else %}<div class="tile-foot">{{ _("30 j : {size}", size=o.uploaded_30d | size) }}</div>{% endif %}
+  </article>
+</section>
+
+<section class="grid cols-3 mt">
+  <article class="card span-2">
+    <div class="card-head">
+      <div><h2>{{ _("Upload par jour") }}</h2><div class="sub">{{ _("30 derniers jours, par tracker") }}</div></div>
+    </div>
+    {% if d.charts.daily.labels %}
+      {{ chart("daily", d.charts.daily, "h-260") }}
+    {% else %}
+      {{ empty("activity", _("Le graphique se construit"), _("Il faut au moins deux collectes pour mesurer l'upload. Repasse dans quelques minutes.")) }}
+    {% endif %}
+  </article>
+
+  <article class="card">
+    <div class="card-head"><div><h2>{{ _("Espace par tracker") }}</h2><div class="sub">{{ _("{size} au total", size=o.size | size) }}</div></div></div>
+    <div class="donut-wrap">
+      {{ chart("donut", d.charts.disk, "h-220") }}
+      <div class="donut-center"><div><strong>{{ d.trackers | length }}</strong><span>tracker{{ "s" if d.trackers | length > 1 }}</span></div></div>
+    </div>
+    <div class="stack" style="gap:8px; margin-top:14px">
+      {% for label in d.charts.disk.labels %}
+        <div class="row between" style="font-size:13px">
+          <span class="row" style="gap:8px">{{ tracker_dot(d.charts.disk.colors[loop.index0]) }}{{ label }}</span>
+          <span class="dim num">{{ d.charts.disk["values"][loop.index0] | size }} · {{ _("{pct} %", pct=d.charts.disk["values"][loop.index0] | pct(o.size)) }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="grid cols-3 mt">
+  <article class="card span-2">
+    <div class="card-head">
+      <div><h2>{{ _("Santé H&R") }}</h2><div class="sub">{{ _("Où en sont tes obligations de seed, tracker par tracker") }}</div></div>
+      <a class="btn sm" href="/trackers">{{ icon("pencil", "sm") }} {{ _("Règles") }}</a>
+    </div>
+    {% set total = o.count or 1 %}
+    <div class="stackbar" style="height:14px">
+      {% for status, n in d.status_totals.items() if n %}
+        <span style="width:{{ 100 * n / total }}%; background:{{ STATUS_COLORS[status] }}" title="{{ tr(HNR_LABELS[status]) }} : {{ n }}"></span>
+      {% endfor %}
+    </div>
+    <div class="legend" style="margin:10px 0 18px">
+      {% for status, n in d.status_totals.items() if n %}
+        <span><i style="background:{{ STATUS_COLORS[status] }}"></i>{{ tr(HNR_LABELS[status]) }} <strong style="color:var(--text)">{{ n }}</strong></span>
+      {% endfor %}
+    </div>
+    <div class="stack" style="gap:14px">
+      {% for s in d.trackers %}
+        <div>
+          <div class="row between" style="font-size:13px; margin-bottom:6px">
+            <a class="row" style="gap:8px; font-weight:600" href="/torrents?tracker={{ s.name | urlencode }}">{{ tracker_dot(d.palette.slot(s.name)) }}{{ s.name }}</a>
+            <span class="muted">{{ _("{n} torrent · ratio {ratio}" if s.count == 1 else "{n} torrents · ratio {ratio}", n=s.count, ratio=s.ratio | ratio) }}</span>
+          </div>
+          <div class="stackbar">
+            {% for status in HnrStatus if s.statuses[status] %}
+              <span style="width:{{ 100 * s.statuses[status] / s.count }}%; background:{{ STATUS_COLORS[status] }}" title="{{ tr(HNR_LABELS[status]) }} : {{ s.statuses[status] }}"></span>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    {% if d.status_totals["no_rule"] %}
+      <div class="callout mt">{{ icon("info") }}<div>{{ _("<strong>{n} torrents sans règle H&R.</strong> Ils sont considérés comme intouchables. Définis les exigences de tes trackers pour suivre tes obligations.", n=d.status_totals["no_rule"]) }}</div></div>
+    {% endif %}
+  </article>
+
+  <article class="card">
+    <div class="card-head"><div><h2>{{ _("Âge du stock") }}</h2><div class="sub">{{ _("Espace occupé selon la date d'ajout") }}</div></div></div>
+    {{ chart("columns", d.charts.age, "h-260") }}
+  </article>
+</section>
+
+<section id="performance" class="mt">
+  {% include "partials/performance.html" %}
+</section>
+
+<section class="card mt">
+  <div class="card-head">
+    <div><h2>{{ _("À surveiller") }}</h2><div class="sub">{{ _("Torrents qui ont besoin d'un coup d'œil") }}</div></div>
+    {% if d.watch %}<a class="btn sm" href="/watch">{{ _("Tout voir ({n})", n=d.watch | length) }} {{ icon("chevron-right", "sm") }}</a>{% endif %}
+  </div>
+  {% if d.watch %}
+    <div class="stack" style="gap:8px">
+      {% for t, reason, hnr in d.watch[:5] %}
+        <div class="issue {{ 'critical' if hnr.status == 'at_risk' or t.unregistered }}">
+          <div class="ic">{{ icon("alert") }}</div>
+          <div style="min-width:0"><div class="ellipsis title" style="font-weight:560">{{ t.name }}</div><div class="muted" style="font-size:12px">{{ tr(reason) }}</div></div>
+          {{ hnr_badge(hnr) }}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    {{ empty("shield", _("Rien à signaler"), _("Aucun torrent en erreur, non enregistré ou en danger côté H&R.")) }}
+  {% endif %}
+</section>
+{% endblock %}

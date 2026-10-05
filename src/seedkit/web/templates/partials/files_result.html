@@ -1,0 +1,54 @@
+{% from "macros.html" import icon, empty %}
+{% if scan %}
+  {% if scan.errors %}<div class="callout danger" style="margin-bottom:18px">{{ icon("alert") }}<div><strong>{{ _("L'analyse a rencontré des erreurs.") }}</strong>{% for e in scan.errors %}<br>{{ e }}{% endfor %}</div></div>{% endif %}
+  <section class="grid cols-3">
+    <article class="card hero">
+      {% set v, u = scan.orphan_size | size_parts %}
+      <div class="hero-label">{{ icon("folder", "sm") }} {{ _("Orphelins") }}</div>
+      <div class="row" style="align-items:baseline; gap:8px; margin-top:10px"><span class="hero-value">{{ v }}</span><span class="hero-value" style="font-size:24px">{{ u }}</span></div>
+      <div class="hero-meta"><span>{{ _("<strong>{n}</strong> éléments", n=scan.orphans | length) }}</span><span>{{ _("analyse {ago}", ago=scan.ts | ago) }}</span></div>
+    </article>
+    <article class="card">
+      <div class="card-head"><div><h3>{{ _("Répartition du partage") }}</h3><div class="sub">{{ _("{n} fichiers · {size}", n=scan.scanned_files | number, size=scan.scanned_size | size) }}</div></div></div>
+      <div class="stackbar" style="height:14px">
+        <span style="width:{{ 100 * scan.known_size / (scan.scanned_size or 1) }}%; background:var(--status-good)"></span>
+        <span style="width:{{ 100 * scan.orphan_size / (scan.scanned_size or 1) }}%; background:var(--status-serious)"></span>
+      </div>
+      <div class="legend" style="margin-top:10px">
+        <span><i style="background:var(--status-good)"></i>{{ _("Connu de qBittorrent {size}", size=scan.known_size | size) }}</span>
+        <span><i style="background:var(--status-serious)"></i>{{ _("Orphelin {size}", size=scan.orphan_size | size) }}</span>
+      </div>
+    </article>
+    <article class="card tile">
+      <div class="tile-label">{{ icon("file-x", "sm") }} {{ _("Fichiers manquants") }}</div>
+      <div class="tile-value" style="color:{{ 'var(--critical-text)' if scan.missing else 'var(--text)' }}">{{ scan.missing | length }}</div>
+      <div class="tile-foot">{{ _("{n} torrent(s) hors des chemins mappés", n=scan.unmapped | length) }}</div>
+    </article>
+  </section>
+  {% if scan.orphans %}
+  <article class="card mt">
+    <div class="card-head"><div><h2>{{ _("Orphelins par dossier") }}</h2><div class="sub">{{ _("À vérifier puis supprimer toi-même si besoin. seedkit n'y touche pas.") }}</div></div></div>
+    {% set biggest = scan.orphans[0].size or 1 %}
+    <div class="bars">
+      {% for o in scan.orphans[:40] %}
+        <div class="bar-row">
+          <div class="label"><div class="mono ellipsis" title="{{ o.path }}">{{ o.path }}</div><div class="meta">{{ _("{n} fichier(s)", n=o.files) }}</div></div>
+          <div class="value">{{ o.size | size }}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:{{ [100 * o.size / biggest, 0.5] | max }}%; background:var(--status-serious)"></div></div>
+        </div>
+      {% endfor %}
+    </div>
+  </article>
+  {% endif %}
+  {% if scan.missing %}
+  <article class="card mt">
+    <div class="card-head"><h2>{{ _("Fichiers manquants") }}</h2></div>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>{{ _("Torrent") }}</th><th>{{ _("Fichier attendu") }}</th></tr></thead>
+      <tbody>{% for m in scan.missing[:200] %}<tr><td class="name"><div class="ellipsis">{{ m.name }}</div></td><td class="mono dim" style="font-size:12px">{{ m.path }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </article>
+  {% endif %}
+{% else %}
+  <article class="card">{{ empty("search", _("Aucune analyse pour l'instant"), _("Teste d'abord la correspondance des chemins, puis lance l'analyse. Elle peut prendre quelques minutes sur un gros partage.")) }}</article>
+{% endif %}

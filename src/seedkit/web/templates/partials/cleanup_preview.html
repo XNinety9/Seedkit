@@ -1,0 +1,85 @@
+{% from "macros.html" import icon, empty, window_label %}
+<div class="stack">
+  <section class="grid cols-3">
+    <article class="card hero span-2">
+      {% set v, u = preview.size | size_parts %}
+      <div class="hero-label">{{ icon("sparkles", "sm") }} {{ _("Espace libérable") }}</div>
+      <div class="row" style="align-items:baseline; gap:10px; margin-top:10px">
+        <span class="hero-value">{{ v }}</span><span class="hero-value" style="font-size:28px">{{ u }}</span>
+      </div>
+      <div style="margin-top:16px">
+        <div class="stackbar" style="height:12px">
+          <span style="width:{{ [100 * preview.size / (total or 1), 0.6 if preview.size else 0] | max }}%; background:var(--gradient)"></span>
+          <span style="flex:1; background:var(--surface-3)"></span>
+        </div>
+        <div class="row between muted" style="font-size:12px; margin-top:6px">
+          <span>{{ _("{n} torrents · {pct} % du stock", n=preview.candidates | length, pct=preview.size | pct(total)) }}</span>
+          <span>{{ _("{size} au total", size=total | size) }}</span>
+        </div>
+      </div>
+    </article>
+    <article class="card">
+      <div class="card-head" style="margin-bottom:10px"><h3>{{ _("Non proposés") }}</h3></div>
+      {% set max_ex = (preview.excluded.values() | max) if preview.excluded else 1 %}
+      <div class="stack" style="gap:10px">
+        {% for why, n in preview.excluded.items() %}
+          <div>
+            <div class="row between" style="font-size:12.5px"><span class="dim">{{ tr(why) }}</span><strong>{{ n }}</strong></div>
+            <div class="progress" style="margin-top:4px"><span style="width:{{ 100 * n / max_ex }}%; background:var(--status-neutral)"></span></div>
+          </div>
+        {% else %}<span class="muted">{{ _("Aucun") }}</span>{% endfor %}
+      </div>
+    </article>
+  </section>
+
+  {% if preview.candidates %}
+  <form method="post" action="/cleanup/delete" class="card flush"
+        data-confirm="{{ _('Supprimer {n} torrent(s) de qBittorrent ? Cette action est irréversible.') }}"
+        onsubmit="return confirm(this.dataset.confirm.replace('{n}', this.querySelectorAll('input[name=hashes]:checked').length))">
+    <div class="card-head" style="padding:18px 20px">
+      <div><h2>{{ _("Candidats") }}</h2><div class="sub">{{ _("Décoche ce que tu veux garder. Les non enregistrés sont en tête.") }}</div></div>
+      <div class="row wrap">
+        <label class="row" style="gap:8px; font-size:13px"><input type="checkbox" name="delete_files" value="true" checked> {{ _("Supprimer aussi les données") }}</label>
+        {% if settings.seedkit_allow_delete %}
+          <button class="btn danger">{{ icon("trash", "sm") }} {{ _("Supprimer la sélection") }}</button>
+        {% else %}
+          <button class="btn" disabled title="{{ _('Activer avec SEEDKIT_ALLOW_DELETE=true') }}">{{ icon("lock", "sm") }} {{ _("Suppression verrouillée") }}</button>
+        {% endif %}
+      </div>
+    </div>
+    {% if not settings.seedkit_allow_delete %}
+      <div class="callout warn" style="margin:0 20px 14px">{{ icon("lock") }}<div>{{ _("<strong>Mode aperçu.</strong> La suppression est verrouillée tant que <code>SEEDKIT_ALLOW_DELETE=true</code> n'est pas défini. Tu peux explorer les candidats sans aucun risque.") }}</div></div>
+    {% endif %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr>
+          <th style="width:36px"><input type="checkbox" checked onclick="this.closest('form').querySelectorAll('input[name=hashes]').forEach(c => c.checked = this.checked)" aria-label="{{ _('Tout sélectionner') }}"></th>
+          <th>{{ _("Torrent") }}</th><th>{{ _("Raison") }}</th><th class="num">{{ _("Taille") }}</th>
+          <th class="num">{{ _("Upload ({window})", window=window_label(criteria.window, false)) }}</th><th class="num">{{ _("Efficacité") }}</th><th class="num">{{ _("Ratio") }}</th>
+        </tr></thead>
+        <tbody>
+        {% for c in preview.candidates %}
+          <tr>
+            <td><input type="checkbox" name="hashes" value="{{ c.torrent.hash }}" checked aria-label="{{ _('Sélectionner') }}"></td>
+            <td class="name"><div class="ellipsis title" title="{{ c.torrent.name }}">{{ c.torrent.name }}</div><div class="sub">{{ _("{tracker} · seedé {duration}", tracker=c.tracker, duration=c.torrent.seeding_time | duration) }}</div></td>
+            <td>{% if c.torrent.unregistered %}<span class="badge at_risk">{{ _("non enregistré") }}</span>{% else %}<span class="badge plain">{{ _("peu rentable") }}</span>{% endif %}</td>
+            <td class="num">{{ c.torrent.size | size }}</td>
+            <td class="num dim">{{ c.uploaded | size }}</td>
+            <td class="num mono" style="font-size:12.5px">{{ c.efficiency | number(4) }}</td>
+            <td class="num">{{ c.torrent.ratio | ratio }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </form>
+  {% else %}
+    <div class="card">
+      {% if not rules %}
+        {{ empty("shield", _("Aucune règle H&R définie"), _("Tant qu'aucun tracker n'a de règle, tous les torrents sont intouchables. Définis les exigences de tes trackers dans « Trackers & règles ».")) }}
+      {% else %}
+        {{ empty("sparkles", _("Rien à nettoyer"), _("Aucun torrent ne correspond à ces critères.")) }}
+      {% endif %}
+    </div>
+  {% endif %}
+</div>

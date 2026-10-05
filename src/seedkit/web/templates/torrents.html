@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon %}
+{% block title %}{{ _("Torrents") }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <div class="eyebrow">{{ _("Torrents") }}</div>
+    <h1>{{ _("Tout ton stock") }}</h1>
+    <p>{{ _("Recherche, filtre et trie tes torrents. La barre H&R montre où en sont les obligations de seed de chacun.") }}</p>
+  </div>
+</header>
+<form class="card" style="padding:14px; margin-bottom:18px"
+      hx-get="/torrents" hx-target="#torrents-table" hx-push-url="true"
+      hx-trigger="input changed delay:250ms from:input[name=q], change from:select, submit">
+  <div class="grid" style="grid-template-columns: minmax(0,2fr) minmax(0,1fr) minmax(0,1fr); gap:10px">
+    <label class="search">{{ icon("search", "sm") }}<input type="search" name="q" value="{{ params.q }}" placeholder="{{ _('Rechercher un torrent…') }}" autocomplete="off"></label>
+    <select name="tracker" aria-label="{{ _('Tracker') }}">
+      <option value="">{{ _("Tous les trackers") }}</option>
+      {% for name in d.trackers %}<option value="{{ name }}" {{ "selected" if name == params.tracker }}>{{ name }}</option>{% endfor %}
+    </select>
+    <select name="status" aria-label="{{ _('Statut H&R') }}">
+      <option value="">{{ _("Tous les statuts H&R") }}</option>
+      {% for key, label in d.statuses.items() %}<option value="{{ key }}" {{ "selected" if key == params.status }}>{{ tr(label) }}</option>{% endfor %}
+    </select>
+  </div>
+  <input type="hidden" name="sort" value="{{ params.sort }}">
+  <input type="hidden" name="desc" value="{{ params.desc | lower }}">
+</form>
+<div id="torrents-table">
+  {% include "partials/torrents_table.html" %}
+</div>
+{% endblock %}

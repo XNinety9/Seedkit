@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, hnr_badge, empty %}
+{% block title %}{{ _("À surveiller") }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <div class="eyebrow">{{ _("À surveiller") }}</div>
+    <h1>{{ _("Ce qui demande ton attention") }}</h1>
+    <p>{{ _("Torrents en erreur, retirés du tracker, bloqués ou en danger côté H&R. Les problèmes H&R passent en premier.") }}</p>
+  </div>
+</header>
+{% if groups %}
+  {% set total = groups | map(attribute="items") | map("length") | sum %}
+  <section class="grid cols-4" style="margin-bottom:18px">
+    {% for g in groups[:4] %}
+      <article class="card tile">
+        <div class="tile-label" style="color:{{ 'var(--critical-text)' if g.critical else 'var(--warning-text)' }}">{{ icon(g.icon, "sm") }} {{ tr(g.reason) | ucfirst }}</div>
+        <div class="tile-value">{{ g["items"] | length }}</div>
+        <div class="progress {{ 'risk' if g.critical }}"><span style="width:{{ 100 * (g['items'] | length) / total }}%"></span></div>
+      </article>
+    {% endfor %}
+  </section>
+  <div class="stack">
+  {% for g in groups %}
+    <article class="card">
+      <div class="card-head">
+        <div class="row" style="gap:10px">
+          <div class="issue {{ 'critical' if g.critical }}" style="padding:0; border:0; background:none; grid-template-columns:auto"><div class="ic">{{ icon(g.icon) }}</div></div>
+          <div><h2>{{ tr(g.reason) | ucfirst }}</h2><div class="sub">{{ g["items"] | length }} torrent{{ "s" if g["items"] | length > 1 }}</div></div>
+        </div>
+        <form method="post" action="/watch/action" class="row">
+          {% for i in g["items"] %}<input type="hidden" name="hashes" value="{{ i.torrent.hash }}">{% endfor %}
+          {% set locked = not settings.seedkit_allow_actions %}
+          <button class="btn sm" name="action" value="reannounce" {{ "disabled" if locked }} title="{{ _('Verrouillé : SEEDKIT_ALLOW_ACTIONS=false') if locked else _('Forcer un announce au tracker') }}">{{ icon("lock" if locked else "radio-tower", "sm") }} {{ _("Reannounce") }}</button>
+          <button class="btn sm" name="action" value="recheck" {{ "disabled" if locked }} title="{{ _('Verrouillé : SEEDKIT_ALLOW_ACTIONS=false') if locked else _('Revérifier les données') }}">{{ icon("lock" if locked else "refresh", "sm") }} {{ _("Recheck") }}</button>
+        </form>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>{{ _("Torrent") }}</th><th>{{ _("Tracker") }}</th><th class="num">{{ _("Taille") }}</th><th>{{ _("H&R") }}</th><th>{{ _("Message du tracker") }}</th></tr></thead>
+          <tbody>
+          {% for i in g["items"] %}
+            <tr>
+              <td class="name"><div class="ellipsis title" title="{{ i.torrent.name }}">{{ i.torrent.name }}</div><div class="sub mono">{{ i.torrent.state }}</div></td>
+              <td class="nowrap">{{ i.tracker }}</td>
+              <td class="num">{{ i.torrent.size | size }}</td>
+              <td>{{ hnr_badge(i.hnr) }}</td>
+              <td class="dim" style="font-size:12.5px">{{ i.torrent.tracker_msg or "—" }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  {% endfor %}
+  </div>
+{% else %}
+  <div class="card">{{ empty("shield", _("Tout va bien"), _("Aucun torrent en erreur, non enregistré, bloqué ou en danger côté H&R.")) }}</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, window_label %}
+{% block title %}{{ _("Nettoyage") }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <div class="eyebrow">{{ _("Nettoyage") }}</div>
+    <h1>{{ _("Faire de la place, sans risque") }}</h1>
+    <p>{{ _("Seuls les torrents dont le H&R est rempli (ou que le tracker a retirés) peuvent être proposés. Rien n'est supprimé sans aperçu ni confirmation.") }}</p>
+  </div>
+</header>
+<div class="grid" style="grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); align-items:start">
+  <form class="card stack" style="gap:16px; position:sticky; top:20px"
+        hx-get="/cleanup" hx-target="#preview" hx-push-url="true" hx-trigger="change, input delay:300ms from:input[type=range]">
+    <div class="card-head" style="margin:0"><h2>{{ _("Critères") }}</h2></div>
+    <div class="field" style="font-size:12.5px; font-weight:600; color:var(--text-2)">{{ _("Trackers") }}
+      <div class="stack" style="gap:6px; margin-top:6px">
+        {% for n in names %}
+          <label class="row" style="gap:8px; font-weight:500; color:var(--text)">
+            <input type="checkbox" name="tracker" value="{{ n }}" {{ "checked" if n in criteria.trackers }}>
+            <span class="ellipsis">{{ n }}</span>
+            {% if n not in rules %}<span class="badge plain" style="margin-left:auto">{{ _("sans règle") }}</span>{% endif %}
+          </label>
+        {% endfor %}
+        <span class="muted" style="font-size:12px; font-weight:450">{{ _("Aucun coché = tous.") }}</span>
+      </div>
+    </div>
+    <label class="field">{{ _("Fenêtre d'observation") }}
+      <select name="window">
+        {% for w in WINDOWS %}
+          <option value="{{ w }}" {{ "selected" if w == criteria.window }}>{{ window_label(w, false) | ucfirst }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="field">{{ _("Efficacité maximale") }} <span class="hint">{{ _("Go uploadés par Go stocké et par jour") }}</span>
+      {% set eff = criteria.max_efficiency if criteria.max_efficiency is not none else 0.01 %}
+      <input type="range" name="max_efficiency" min="0" max="0.1" step="0.001" value="{{ eff }}"
+             oninput="this.nextElementSibling.textContent = seedkitNumber(Number(this.value), 3) + ' {{ _('×/j') }}'">
+      <output class="mono" style="color:var(--text)">{{ eff | number(3) }} {{ _("×/j") }}</output>
+    </label>
+    <label class="field">{{ _("Seedé depuis au moins (jours)") }}
+      <input type="number" name="min_seed_days" min="0" step="1" value="{{ criteria.min_seed_days | int }}">
+    </label>
+    <label class="row" style="gap:8px; font-size:13px">
+      <input type="hidden" name="unregistered" value="false">
+      <input type="checkbox" name="unregistered" value="true" {{ "checked" if criteria.unregistered }}> {{ _("Inclure les torrents non enregistrés") }}
+    </label>
+  </form>
+  <div id="preview">
+    {% include "partials/cleanup_preview.html" %}
+  </div>
+</div>
+{% endblock %}

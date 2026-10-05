@@ -1,0 +1,93 @@
+{% from "macros.html" import icon %}
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}seedkit{% endblock %} · seedkit</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2334d399'/><stop offset='1' stop-color='%2322d3ee'/></linearGradient></defs><rect width='32' height='32' rx='9' fill='url(%23g)'/><path d='M10 24h12M14 24c6-3 1-7 3-12M13.5 13c1.3 1 2 2.6 2.6 4.3-2.3.4-4 .4-5.5-.4-1.4-.7-2.6-2.2-3.4-4.8 3.2-.5 5 0 6.3.9zM18.5 9.2a8 8 0 0 0-1.3 4.6c2.2-.1 3.8-.7 4.9-1.6 1.2-1.1 1.8-2.6 2-5.3-3.1.1-4.6 1.1-5.6 2.3z' fill='none' stroke='%2304140e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem("seedkit-theme"); } catch (e) {}
+      if (!t) t = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      document.documentElement.dataset.theme = t;
+    })();
+    window.SEEDKIT_I18N = {{ js_i18n | tojson }};
+  </script>
+  <link rel="stylesheet" href="/static/seedkit.css">
+  <script src="/static/vendor/htmx.min.js" defer></script>
+  <script src="/static/vendor/chart.umd.min.js" defer></script>
+  <script src="/static/seedkit.js" defer></script>
+</head>
+<body>
+{% include "icons.html" %}
+<div class="app">
+  <aside class="sidebar">
+    <a class="brand" href="/">
+      <span class="brand-mark">{{ icon("sprout") }}</span>
+      <span class="brand-name">seedkit<small>{{ _("boîte à outils seedbox") }}</small></span>
+    </a>
+    <nav class="nav">
+      {% set items = [
+        ("dashboard", "/", "grid", _("Tableau de bord")),
+        ("torrents", "/torrents", "list", _("Torrents")),
+        ("watch", "/watch", "alert", _("À surveiller")),
+        ("trackers", "/trackers", "radio-tower", _("Trackers & règles")),
+      ] %}
+      {% for key, href, ic, label in items %}
+        <a href="{{ href }}" {% if page == key %}aria-current="page"{% endif %}>
+          {{ icon(ic) }}<span>{{ label }}</span>
+          {% if key == "watch" and watch_count %}<span class="count">{{ watch_count }}</span>{% endif %}
+        </a>
+      {% endfor %}
+      <div class="nav-label">{{ _("Outils") }}</div>
+      {% set tools = [
+        ("cleanup", "/cleanup", "sparkles", _("Nettoyage")),
+        ("files", "/files", "hard-drive", _("Fichiers (SMB)")),
+        ("journal", "/journal", "scroll", _("Journal")),
+      ] %}
+      {% for key, href, ic, label in tools %}
+        <a href="{{ href }}" {% if page == key %}aria-current="page"{% endif %}>{{ icon(ic) }}<span>{{ label }}</span></a>
+      {% endfor %}
+    </nav>
+    <div class="sidebar-foot">
+      <div class="status-card">
+        <div class="row">
+          <span class="pulse {{ 'error' if service.last_error else '' }}"></span>
+          <span>
+            {% if service.last_error %}<strong style="color:var(--critical-text)">{{ _("Collecte en échec") }}</strong>
+            {% elif service.last_run %}{{ _("Collecte {ago}", ago=service.last_run | ago) }}
+            {% else %}{{ _("Aucune collecte") }}{% endif %}
+          </span>
+        </div>
+        {% if service.last_error %}<div class="muted" style="margin-top:6px">{{ service.last_error }}</div>{% endif %}
+        <div class="locks">
+          {% if settings.seedkit_allow_delete %}<span class="badge plain" title="SEEDKIT_ALLOW_DELETE=true">{{ _("suppression active") }}</span>
+          {% else %}<span class="badge lock" title="SEEDKIT_ALLOW_DELETE=false">{{ icon("lock", "sm") }} {{ _("suppression verrouillée") }}</span>{% endif %}
+          {% if not settings.seedkit_allow_actions %}<span class="badge lock" title="SEEDKIT_ALLOW_ACTIONS=false">{{ icon("lock", "sm") }} {{ _("lecture seule") }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="row">
+        <form method="post" action="/collect" style="flex:1" onsubmit="this.querySelector('button').classList.add('htmx-request')">
+          <button class="btn sm block btn-spin" title="{{ _('Interroger qBittorrent maintenant') }}">{{ icon("refresh", "sm") }} {{ _("Collecter") }}</button>
+        </form>
+        <div class="seg" role="group" aria-label="{{ _('Langue') }}">
+          {% for code in LANGS %}<a href="/lang/{{ code }}" class="{{ 'on' if code == lang }}" hreflang="{{ code }}">{{ code | upper }}</a>{% endfor %}
+        </div>
+        <button class="btn sm ghost" data-theme-toggle title="{{ _('Changer de thème') }}" aria-label="{{ _('Changer de thème') }}">
+          {{ icon("sun", "sm") }}
+        </button>
+      </div>
+    </div>
+  </aside>
+  <main class="main">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% if toast %}
+<div class="toast" id="toast">{{ toast }}</div>
+<script>setTimeout(function () { var t = document.getElementById("toast"); if (t) t.remove(); }, 5000);</script>
+{% endif %}
+</body>
+</html>

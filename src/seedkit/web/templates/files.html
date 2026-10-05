@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, empty %}
+{% block title %}{{ _("Fichiers") }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <div class="eyebrow">{{ _("Fichiers · SMB") }}</div>
+    <h1>{{ _("Ce qu'il y a vraiment sur le disque") }}</h1>
+    <p>{{ _("Compare les fichiers du partage SMB avec ceux que qBittorrent connaît : fichiers orphelins (sur le disque mais rattachés à aucun torrent) et fichiers manquants. <strong>Lecture seule</strong> : seedkit ne supprime jamais rien ici.") }}</p>
+  </div>
+  {% if settings.smb_enabled %}
+  <div class="row">
+    <button class="btn" hx-post="/files/check" hx-target="#check" hx-swap="innerHTML" hx-indicator="this">{{ icon("check", "sm") }} {{ _("Tester la correspondance") }}</button>
+    <form method="post" action="/files/scan"><button class="btn primary" {{ "disabled" if service.smb_running }}>{{ icon("search", "sm") }} {{ _("Analyse en cours…") if service.smb_running else _("Lancer l'analyse") }}</button></form>
+  </div>
+  {% endif %}
+</header>
+{% if not settings.smb_enabled %}
+  <article class="card">
+    {{ empty("hard-drive", _("Accès SMB non configuré"), _("Renseigne le partage de ta seedbox pour détecter les fichiers orphelins et manquants. Tout se passe en lecture seule.")) }}
+    <pre class="mono" style="margin:0 auto; max-width:640px; padding:16px; border-radius:12px; background:var(--surface-2); border:1px solid var(--border); overflow:auto">SMB_SERVER=seedbox.local
+SMB_USERNAME={{ _("moi") }}
+SMB_PASSWORD=…
+# {{ _("chemin vu par qBittorrent = chemin SMB (plusieurs séparés par « ; »)") }}
+SEEDKIT_PATH_MAP=/downloads=//seedbox.local/downloads</pre>
+  </article>
+{% else %}
+  <div id="check"></div>
+  <div id="files-result" {% if service.smb_running %}hx-get="/files" hx-trigger="every 3s" hx-select="#files-result" hx-swap="outerHTML"{% endif %}>
+    {% include "partials/files_result.html" %}
+  </div>
+{% endif %}
+{% endblock %}

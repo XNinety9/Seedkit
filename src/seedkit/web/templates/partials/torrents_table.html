@@ -1,0 +1,53 @@
+{% from "macros.html" import icon, hnr_badge, hnr_progress, tracker_dot, empty %}
+{% macro sort_link(key, label, cls="") -%}
+  {% set active = params.sort == key %}
+  {% set next_desc = not params.desc if active else key != "name" %}
+  <th class="{{ cls }}">
+    <a href="/torrents?{{ params | merge(sort=key, desc=next_desc | lower, page=1) | urlencode }}"
+       hx-get="/torrents?{{ params | merge(sort=key, desc=next_desc | lower, page=1) | urlencode }}" hx-target="#torrents-table" hx-push-url="true"
+       class="{{ 'on' if active }}">{{ label }}{% if active %}{{ icon("chevron-down" if params.desc else "chevron-up", "sm") }}{% endif %}</a>
+  </th>
+{%- endmacro %}
+<div class="row between wrap" style="margin-bottom:10px">
+  <div class="dim">{{ _("<strong style='color:var(--text)'>{n}</strong> torrents · {size}", n=d.total | number, size=d.size | size) }}</div>
+  {% if d.pages > 1 %}{% include "partials/pager.html" %}{% endif %}
+</div>
+<div class="card flush">
+  {% if d.rows %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr>
+        {{ sort_link("name", _("Torrent")) }}
+        {{ sort_link("size", _("Taille"), "num") }}
+        {{ sort_link("ratio", _("Ratio"), "num") }}
+        {{ sort_link("uploaded", _("Upload"), "num") }}
+        {{ sort_link("seed", _("Seed"), "num") }}
+        {{ sort_link("seeders", _("Seeders"), "num") }}
+        {{ sort_link("hnr", _("H&R")) }}
+      </tr></thead>
+      <tbody>
+      {% for r in d.rows %}
+        {% set t = r.torrent %}
+        <tr>
+          <td class="name">
+            <div class="ellipsis title" title="{{ t.name }}">{{ t.name }}</div>
+            <div class="sub row" style="gap:6px">{{ tracker_dot(r.slot) }}{{ _("{tracker} · ajouté {date}", tracker=r.tracker, date=t.added_on | short_date) }} · <span class="mono">{{ t.state }}</span></div>
+          </td>
+          <td class="num">{{ t.size | size }}</td>
+          <td class="num" style="font-weight:600; color:{{ 'var(--good-text)' if t.ratio >= 1 else 'var(--text)' }}">{{ t.ratio | ratio }}</td>
+          <td class="num dim">{{ t.uploaded | size }}</td>
+          <td class="num dim">{{ t.seeding_time | duration }}</td>
+          <td class="num dim">{{ t.num_complete }}</td>
+          <td style="min-width:190px">
+            <div class="stack" style="gap:6px">{{ hnr_badge(r.hnr) }}{{ hnr_progress(r.hnr) }}</div>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {{ empty("search", _("Aucun torrent"), _("Aucun torrent ne correspond à ces filtres.")) }}
+  {% endif %}
+</div>
+{% if d.pages > 1 %}<div class="row" style="justify-content:flex-end; margin-top:12px">{% include "partials/pager.html" %}</div>{% endif %}

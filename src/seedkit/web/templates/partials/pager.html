@@ -1,0 +1,10 @@
+{% from "macros.html" import icon %}
+<div class="seg">
+  {% if d.page > 1 %}
+    <a hx-get="/torrents?{{ params | merge(page=d.page - 1, desc=params.desc | lower) | urlencode }}" hx-target="#torrents-table" hx-push-url="true" href="#" aria-label="{{ _('Page précédente') }}">{{ icon("chevron-left", "sm") }}</a>
+  {% endif %}
+  <span class="on" style="padding:4px 11px; font-size:12.5px; font-weight:600">{{ d.page }} / {{ d.pages }}</span>
+  {% if d.page < d.pages %}
+    <a hx-get="/torrents?{{ params | merge(page=d.page + 1, desc=params.desc | lower) | urlencode }}" hx-target="#torrents-table" hx-push-url="true" href="#" aria-label="{{ _('Page suivante') }}">{{ icon("chevron-right", "sm") }}</a>
+  {% endif %}
+</div>

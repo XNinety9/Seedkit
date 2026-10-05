@@ -1,0 +1,406 @@
+"""US English catalog. Keys are the French source strings; tests check that every key used in the code is here."""
+
+EN: dict[str, str] = {
+    # Dynamic keys (statuses, reasons, buckets…) built from data rather than written as literals
+    "H&R OK": "H&R met",
+    "H&R en cours": "H&R pending",
+    "H&R en danger": "H&R at risk",
+    "téléchargement": "downloading",
+    "non enregistré sur le tracker": "unregistered on the tracker",
+    "erreur qBittorrent": "qBittorrent error",
+    "fichiers manquants": "missing files",
+    "tracker en erreur": "tracker error",
+    "en pause": "paused",
+    "bloqué sur les métadonnées": "stuck fetching metadata",
+    "téléchargement mort (aucun seeder)": "dead download (no seeders)",
+    "tracker sans règle (intouchable)": "tracker without a rule (untouchable)",
+    "en téléchargement": "still downloading",
+    "H&R pas encore rempli": "H&R not met yet",
+    "non enregistré (non inclus)": "unregistered (excluded)",
+    "seedé depuis trop peu de temps": "seeded for too short a time",
+    "assez rentable": "profitable enough",
+    "< 1 sem.": "< 1 week",
+    "< 1 mois": "< 1 month",
+    "< 3 mois": "< 3 months",
+    "< 1 an": "< 1 year",
+    "> 1 an": "> 1 year",
+    "Autres": "Others",
+    "torrent + données": "torrent + data",
+    "torrent seul": "torrent only",
+    "date d'ajout": "date added",
+    "authentification refusée par qBittorrent (vérifie la clé d'API ou les identifiants)": (
+        "qBittorrent rejected the credentials (check the API key or the username and password)"
+    ),
+    "accès refusé par qBittorrent (403) : clé d'API invalide ou IP bannie ?": (
+        "qBittorrent denied access (403): invalid API key or banned IP?"
+    ),
+    "qBittorrent injoignable à {url}": "qBittorrent unreachable at {url}",
+    "jamais": "never",
+    "à l'instant": "just now",
+    "il y a {duration}": "{duration} ago",
+    # Literal keys
+    "(aucun tracker)": "(no tracker)",
+    "(aucun)": "(none)",
+    "/jour": "/day",
+    "24 h": "24h",
+    "24 heures": "24 hours",
+    "30 derniers jours, par tracker": "Last 30 days, by tracker",
+    "30 j": "30d",
+    "30 j : {size}": "30d: {size}",
+    "30 jours": "30 days",
+    "7 j": "7d",
+    "7 jours": "7 days",
+    "<strong style='color:var(--text)'>{n}</strong> torrents · {size}": (
+        "<strong style='color:var(--text)'>{n}</strong> torrents · {size}"
+    ),
+    "<strong>Mode aperçu.</strong> La suppression est verrouillée tant que <code>SEEDKIT_ALLOW_DELETE=true</code> "
+    "n'est pas défini. Tu peux explorer les candidats sans aucun risque.": (
+        "<strong>Preview mode.</strong> Deletion stays locked until <code>SEEDKIT_ALLOW_DELETE=true</code> is set. "
+        "You can explore the candidates without any risk."
+    ),
+    "<strong>{a}</strong> et <strong>{b}</strong> semblent être le même tracker. Les regrouper permet de leur "
+    "appliquer une seule règle H&R et des statistiques communes.": (
+        "<strong>{a}</strong> and <strong>{b}</strong> look like the same tracker. Grouping them lets you apply a "
+        "single H&R rule and get combined statistics."
+    ),
+    "<strong>{n} torrents sans règle H&R.</strong> Ils sont considérés comme intouchables. Définis les exigences "
+    "de tes trackers pour suivre tes obligations.": (
+        "<strong>{n} torrents without an H&R rule.</strong> They are treated as untouchable. Set your trackers' "
+        "requirements to track your obligations."
+    ),
+    "<strong>{n}</strong> en upload actif": "<strong>{n}</strong> actively uploading",
+    "<strong>{n}</strong> torrents": "<strong>{n}</strong> torrents",
+    "<strong>{n}</strong> éléments": "<strong>{n}</strong> items",
+    "<strong>{size}</strong> stockés": "<strong>{size}</strong> stored",
+    "Accès SMB non configuré": "SMB access not configured",
+    "Action": "Action",
+    "Activer avec SEEDKIT_ALLOW_DELETE=true": "Enable with SEEDKIT_ALLOW_DELETE=true",
+    "Analyse SMB lancée": "SMB scan started",
+    "Analyse en cours…": "Scanning…",
+    "Au moins une": "At least one",
+    "Aucun": "None",
+    "Aucun coché = tous.": "None checked = all.",
+    "Aucun torrent": "No torrents",
+    "Aucun torrent en erreur, non enregistré ou en danger côté H&R.": (
+        "No torrents in error, unregistered or at H&R risk."
+    ),
+    "Aucun torrent en erreur, non enregistré, bloqué ou en danger côté H&R.": (
+        "No torrents in error, unregistered, stuck or at H&R risk."
+    ),
+    "Aucun torrent en erreur, retiré ou en danger côté H&R. 👌": "No torrents in error, removed or at H&R risk. 👌",
+    "Aucun torrent ne correspond à ces critères.": "No torrents match these criteria.",
+    "Aucun torrent ne correspond à ces filtres.": "No torrents match these filters.",
+    "Aucun tracker": "No trackers",
+    "Aucune analyse pour l'instant": "No scan yet",
+    "Aucune règle H&R définie": "No H&R rules defined",
+    "Authentification refusée : vérifie QBIT_API_KEY ou QBIT_USERNAME / QBIT_PASSWORD.": (
+        "Authentication failed: check QBIT_API_KEY or QBIT_USERNAME / QBIT_PASSWORD."
+    ),
+    "Boîte à outils pour seedbox qBittorrent": "Toolkit for qBittorrent seedboxes",
+    "Candidats": "Candidates",
+    "Carte du seed": "Seed map",
+    "Ce qu'il y a vraiment sur le disque": "What is really on the disk",
+    "Ce qui demande ton attention": "What needs your attention",
+    "Changer de thème": "Toggle theme",
+    "Chaque action envoyée à qBittorrent est consignée ici : suppressions, reannounces, rechecks, tags.": (
+        "Every action sent to qBittorrent is recorded here: deletions, reannounces, rechecks, tags."
+    ),
+    "Chaque point est un torrent. En haut à gauche : petits et très demandés. En bas à droite : gros et dormants.": (
+        "Each dot is a torrent. Top left: small and in high demand. Bottom right: large and dormant."
+    ),
+    "Classements sur {window}": "Rankings over {window}",
+    "Collecte en échec": "Collection failing",
+    "Collecte terminée": "Collection complete",
+    "Collecte {ago}": "Collected {ago}",
+    "Collecter": "Collect",
+    "Compare les fichiers du partage SMB avec ceux que qBittorrent connaît : fichiers orphelins (sur le disque "
+    "mais rattachés à aucun torrent) et fichiers manquants. <strong>Lecture seule</strong> : seedkit ne supprime "
+    "jamais rien ici.": (
+        "Compares the files on the SMB share with the ones qBittorrent knows about: orphaned files (on disk but "
+        "not part of any torrent) and missing files. <strong>Read-only</strong>: seedkit never deletes anything here."
+    ),
+    "Condition": "Condition",
+    "Connu de qBittorrent {size}": "Known to qBittorrent {size}",
+    "Critères": "Criteria",
+    "Date": "Date",
+    "Décoche ce que tu veux garder. Les non enregistrés sont en tête.": (
+        "Uncheck what you want to keep. Unregistered torrents come first."
+    ),
+    "Définir la règle": "Set rule",
+    "Détail": "Details",
+    "Efficacité": "Efficiency",
+    "Efficacité = upload / taille / jour. Plus c'est haut, plus le torrent rapporte pour la place qu'il prend.": (
+        "Efficiency = upload / size / day. The higher it is, the more the torrent gives back for the space it takes."
+    ),
+    "Efficacité maximale": "Maximum efficiency",
+    "En attente de la première collecte…": "Waiting for the first collection…",
+    "Espace": "Space",
+    "Espace libérable": "Reclaimable space",
+    "Espace occupé selon la date d'ajout": "Space used by date added",
+    "Espace par tracker": "Space by tracker",
+    "Exporter": "Export",
+    "Faire de la place, sans risque": "Free up space, safely",
+    "Fenêtre": "Window",
+    "Fenêtre d'observation": "Observation window",
+    "Fichier attendu": "Expected file",
+    "Fichier de règles invalide : {error}": "Invalid rules file: {error}",
+    "Fichiers": "Files",
+    "Fichiers (SMB)": "Files (SMB)",
+    "Fichiers manquants": "Missing files",
+    "Fichiers · SMB": "Files · SMB",
+    "Forcer un announce au tracker": "Force an announce to the tracker",
+    "Fusionner": "Merge",
+    "Fusionner dans…": "Merge into…",
+    "Go uploadés par Go stocké et par jour": "GiB uploaded per GiB stored per day",
+    "H&R": "H&R",
+    "Historique en construction depuis {since} : les statistiques par période s'affinent à chaque collecte.": (
+        "History has been building for {since}: per-period statistics get sharper with every collection."
+    ),
+    "Il faut au moins deux collectes pour mesurer l'upload. Repasse dans quelques minutes.": (
+        "Measuring upload takes at least two collections. Check back in a few minutes."
+    ),
+    "Importer": "Import",
+    "Impossible de joindre qBittorrent à {url} : {error}": "Cannot reach qBittorrent at {url}: {error}",
+    "Inclure les torrents non enregistrés": "Include unregistered torrents",
+    "Interroger qBittorrent maintenant": "Query qBittorrent now",
+    "Journal": "Activity log",
+    "Journal vide": "Empty log",
+    "L'analyse a rencontré des erreurs.": "The scan ran into errors.",
+    "La carte apparaît dès qu'il y a des torrents complétés.": "The map appears once there are completed torrents.",
+    "La courbe horaire apparaît après deux collectes.": "The hourly curve appears after two collections.",
+    "La suppression est verrouillée (SEEDKIT_ALLOW_DELETE=false).": "Deletion is locked (SEEDKIT_ALLOW_DELETE=false).",
+    "Lancer l'analyse": "Start scan",
+    "Langue": "Language",
+    "Le graphique se construit": "The chart is building up",
+    "Le graphique se construit : il faut au moins deux jours de collecte.": (
+        "The chart is building up: it needs at least two days of collection."
+    ),
+    "Les actions sont verrouillées (SEEDKIT_ALLOW_ACTIONS=false).": "Actions are locked (SEEDKIT_ALLOW_ACTIONS=false).",
+    "Les deux": "Both",
+    "Les torrents complétés depuis moins d'un jour sont ignorés.": "Torrents completed less than a day ago are ignored.",
+    "Les trackers apparaissent après la première collecte.": "Trackers show up after the first collection.",
+    "Meilleurs seeds": "Top seeds",
+    "Meilleurs seeds (24 h) :": "Top seeds (24h):",
+    "Message du tracker": "Tracker message",
+    "Mettre à jour": "Update",
+    "Moins rentables": "Least profitable",
+    "Nettoyage": "Cleanup",
+    "Nom & regroupement": "Name & grouping",
+    "Nom affiché": "Display name",
+    "Nom du groupe": "Group name",
+    "Nom du groupe (ex. Acme)": "Group name (e.g. Acme)",
+    "Nombre invalide : {value}": "Invalid number: {value}",
+    "Non proposés": "Not proposed",
+    "Notes": "Notes",
+    "Orphelin {size}": "Orphaned {size}",
+    "Orphelins": "Orphaned",
+    "Orphelins par dossier": "Orphans by folder",
+    "Outils": "Tools",
+    "Où en sont tes obligations de seed, tracker par tracker": "Where your seeding obligations stand, tracker by tracker",
+    "Page précédente": "Previous page",
+    "Page suivante": "Next page",
+    "Pas encore assez de recul": "Not enough history yet",
+    "Pas encore assez de recul.": "Not enough history yet.",
+    "Pas encore de données": "No data yet",
+    "Performance de seed": "Seeding performance",
+    "Quitter": "Quit",
+    "Rafraîchir": "Refresh",
+    "Raison": "Reason",
+    "Ratio": "Ratio",
+    "Ratio global": "Overall ratio",
+    "Ratio global : {ratio}": "Overall ratio: {ratio}",
+    "Ratio global <strong>{ratio}</strong>": "Overall ratio <strong>{ratio}</strong>",
+    "Ratio minimum": "Minimum ratio",
+    "Reannounce": "Reannounce",
+    "Recheck": "Recheck",
+    "Recherche, filtre et trie tes torrents. La barre H&R montre où en sont les obligations de seed de chacun.": (
+        "Search, filter and sort your torrents. The H&R bar shows where each one stands on its seeding obligations."
+    ),
+    "Rechercher": "Search",
+    "Rechercher un torrent…": "Search torrents…",
+    "Regroupe les domaines d'un même tracker, puis indique ses exigences Hit & Run. Un tracker sans règle est "
+    "<strong>intouchable</strong> : seedkit ne proposera jamais d'en supprimer les torrents.": (
+        "Group the domains of the same tracker, then enter its Hit & Run requirements. A tracker without a rule is "
+        "<strong>untouchable</strong>: seedkit will never suggest deleting its torrents."
+    ),
+    "Regrouper": "Group",
+    "Renommer": "Rename",
+    "Renseigne le partage de ta seedbox pour détecter les fichiers orphelins et manquants. Tout se passe en "
+    "lecture seule.": ("Configure your seedbox share to detect orphaned and missing files. Everything is read-only."),
+    "Reste {duration} de seed": "{duration} of seeding left",
+    "Revérifier les données": "Recheck the data",
+    "Rien à nettoyer": "Nothing to clean up",
+    "Rien à signaler": "All clear",
+    "Rien à signaler 👌": "All clear 👌",
+    "Règle de {tracker} enregistrée": "Rule for {tracker} saved",
+    "Règle de {tracker} supprimée": "Rule for {tracker} deleted",
+    "Règles": "Rules",
+    "Règles conservées pour des trackers qui n'ont plus de torrent actif": (
+        "Rules kept for trackers that no longer have active torrents"
+    ),
+    "Règles sans torrent": "Rules without torrents",
+    "Répartition du partage": "Share breakdown",
+    "SMB non configuré": "SMB not configured",
+    "Santé H&R": "H&R health",
+    "Seed": "Seed time",
+    "Seed minimum (heures)": "Minimum seed time (hours)",
+    "Seeders": "Seeders",
+    "Seedé depuis au moins (jours)": "Seeded for at least (days)",
+    "Seuls les torrents dont le H&R est rempli (ou que le tracker a retirés) peuvent être proposés. Rien n'est "
+    "supprimé sans aperçu ni confirmation.": (
+        "Only torrents whose H&R is met (or that the tracker removed) can be proposed. Nothing is deleted without "
+        "a preview and a confirmation."
+    ),
+    "Statut H&R": "H&R status",
+    "Suppression verrouillée": "Deletion locked",
+    "Supprimer": "Delete",
+    "Supprimer aussi les données": "Also delete the data",
+    "Supprimer la règle": "Delete rule",
+    "Supprimer la sélection": "Delete selection",
+    "Supprimer {n} torrent(s) de qBittorrent ? Cette action est irréversible.": (
+        "Delete {n} torrent(s) from qBittorrent? This cannot be undone."
+    ),
+    "Sélectionner": "Select",
+    "Séparer les domaines": "Split domains",
+    "Ta seedbox en un coup d'œil": "Your seedbox at a glance",
+    "Tableau de bord": "Dashboard",
+    "Taille": "Size",
+    "Taille : {value}": "Size: {value}",
+    "Tant qu'aucun tracker n'a de règle, tous les torrents sont intouchables. Définis les exigences de tes "
+    "trackers dans « Trackers & règles ».": (
+        "As long as no tracker has a rule, every torrent is untouchable. Set your trackers' requirements in "
+        "“Trackers & rules”."
+    ),
+    "Tes trackers et leurs exigences": "Your trackers and their requirements",
+    "Test de correspondance": "Path mapping test",
+    "Teste d'abord la correspondance des chemins, puis lance l'analyse. Elle peut prendre quelques minutes sur "
+    "un gros partage.": (
+        "Test the path mapping first, then start the scan. It can take a few minutes on a large share."
+    ),
+    "Tester la correspondance": "Test path mapping",
+    "Torrent": "Torrent",
+    "Torrents": "Torrents",
+    "Torrents en erreur, retirés du tracker, bloqués ou en danger côté H&R. Les problèmes H&R passent en premier.": (
+        "Torrents in error, removed from the tracker, stuck or at H&R risk. H&R problems come first."
+    ),
+    "Torrents qui ont besoin d'un coup d'œil": "Torrents that need a look",
+    "Total : {value}": "Total: {value}",
+    "Tous les statuts H&R": "All H&R statuses",
+    "Tous les trackers": "All trackers",
+    "Tout": "All",
+    "Tout ce que seedkit a fait": "Everything seedkit has done",
+    "Tout sélectionner": "Select all",
+    "Tout ton stock": "Your whole library",
+    "Tout va bien": "All good",
+    "Tout voir ({n})": "See all ({n})",
+    "Tracker": "Tracker",
+    "Trackers": "Trackers",
+    "Trackers & règles": "Trackers & rules",
+    "URL du serveur seedkit (défaut : $SEEDKIT_URL ou http://127.0.0.1:8337)": (
+        "seedkit server URL (default: $SEEDKIT_URL or http://127.0.0.1:8337)"
+    ),
+    "Upload": "Upload",
+    "Upload ({window})": "Upload ({window})",
+    "Upload 24 h": "24h upload",
+    "Upload 24 h : {day} · 7 j : {week}": "24h upload: {day} · 7d: {week}",
+    "Upload 7 jours": "7-day upload",
+    "Upload : {value}": "Upload: {value}",
+    "Upload par jour": "Upload per day",
+    "Upload par jour ({window})": "Upload per day ({window})",
+    "Upload par jour · 30 jours": "Upload per day · 30 days",
+    "Uploadé": "Uploaded",
+    "Uploadé au total": "Total uploaded",
+    "Verrouillé : SEEDKIT_ALLOW_ACTIONS=false": "Locked: SEEDKIT_ALLOW_ACTIONS=false",
+    "analyse {ago}": "scanned {ago}",
+    "aucune correspondance": "no match",
+    "boîte à outils seedbox": "seedbox toolkit",
+    "chemin vu par qBittorrent = chemin SMB (plusieurs séparés par « ; »)": (
+        "path seen by qBittorrent = SMB path (separate several with ;)"
+    ),
+    "connexion…": "connecting…",
+    "correspondance OK": "mapping OK",
+    "depuis l'ajout": "since added",
+    "domaines": "domains",
+    "dossier de destination": "destination folder",
+    "effectue une collecte unique puis quitte": "run a single collection, then exit",
+    "en upload actif": "actively uploading",
+    "espace": "space",
+    "ex. 1": "e.g. 1",
+    "ex. 72": "e.g. 72",
+    "ex. 72 h ou ratio 1": "e.g. 72h or ratio 1",
+    "exporte les fichiers .torrent dans un dossier (lecture seule)": "export the .torrent files to a folder (read-only)",
+    "fenêtre inconnue": "unknown window",
+    "interface terminal (se connecte à un serveur seedkit)": "terminal interface (connects to a seedkit server)",
+    "lance le dashboard et le collecteur (par défaut)": "start the dashboard and the collector (default)",
+    "langue de l'interface": "interface language",
+    "lecture seule": "read-only",
+    "max {size}/jour": "max {size}/day",
+    "moi": "me",
+    "non enregistré": "unregistered",
+    "peu rentable": "unprofitable",
+    "ratio": "ratio",
+    "reannounce": "reannounce",
+    "recheck": "recheck",
+    "règle définie": "rule set",
+    "sans règle": "no rule",
+    "sans règle · intouchable": "no rule · untouchable",
+    "seed {hours} h · ratio {ratio}": "seed {hours}h · ratio {ratio}",
+    "seedkit : résumé du jour": "seedkit: daily summary",
+    "seedkit : {n} torrent(s) à surveiller": "seedkit: {n} torrent(s) need attention",
+    "seedkit n'a encore rien modifié sur ta seedbox. Toutes les écritures sont verrouillées par défaut.": (
+        "seedkit hasn't changed anything on your seedbox yet. All writes are locked by default."
+    ),
+    "serveur seedkit injoignable à {url} — lance « seedkit serve »": (
+        "seedkit server unreachable at {url} — run `seedkit serve`"
+    ),
+    "stockés": "stored",
+    "suppression": "deletion",
+    "suppression active": "deletion enabled",
+    "suppression verrouillée": "deletion locked",
+    "tags": "tags",
+    "torrents": "torrents",
+    "tri : {column} {arrow}   (clic sur un en-tête pour trier)": "sort: {column} {arrow}   (click a header to sort)",
+    "upload 7 j": "7d upload",
+    "uploadé": "uploaded",
+    "vérifie la connexion à qBittorrent": "check the connection to qBittorrent",
+    "{days} jours d'historique, collecte toutes les {minutes} min.": (
+        "{days} days of history, collected every {minutes} min."
+    ),
+    "{n} fichier(s)": "{n} file(s)",
+    "{n} fichiers · {size}": "{n} files · {size}",
+    "{n} premiers affichés": "first {n} shown",
+    "{n} torrent(s) : {action} envoyé": "{n} torrent(s): {action} sent",
+    "{n} torrent(s) hors des chemins mappés": "{n} torrent(s) outside the mapped paths",
+    "{n} torrent(s) supprimé(s), {size} libérés": "{n} torrent(s) deleted, {size} freed",
+    "{n} torrents": "{n} torrents",
+    "{n} torrents · ratio {ratio}": "{n} torrents · ratio {ratio}",
+    "{n} torrent · ratio {ratio}": "{n} torrent · ratio {ratio}",
+    "{pct} %": "{pct}%",
+    "Aucune collecte": "Never collected",
+    "{n} torrents · {pct} % du stock": "{n} torrents · {pct}% of the library",
+    "{n} torrents · {size}": "{n} torrents · {size}",
+    "{n} torrents, trackers : {trackers}": "{n} torrents, trackers: {trackers}",
+    "{n} tracker(s) importé(s)": "{n} tracker(s) imported",
+    "{n} à surveiller": "{n} need attention",
+    "{pct} % des exigences H&R": "{pct}% of the H&R requirements",
+    "{size} au total": "{size} in total",
+    "{tracker} regroupé dans {target}": "{tracker} grouped into {target}",
+    "{tracker} séparé en domaines": "{tracker} split into domains",
+    "{tracker} · ajouté {date}": "{tracker} · added {date}",
+    "{tracker} · seedé {duration}": "{tracker} · seeded {duration}",
+    "{tracker} · {size} · {uploaded} uploadés": "{tracker} · {size} · {uploaded} uploaded",
+    "{written} fichier(s) .torrent exporté(s), {skipped} déjà présent(s) dans {directory}": (
+        "{written} .torrent file(s) exported, {skipped} already in {directory}"
+    ),
+    "À surveiller": "Watchlist",
+    "À surveiller : {n}": "Needs attention: {n}",
+    "À vérifier puis supprimer toi-même si besoin. seedkit n'y touche pas.": (
+        "Review, then delete them yourself if needed. seedkit doesn't touch them."
+    ),
+    "Âge du stock": "Library age",
+    "Échec : {error}": "Failed: {error}",
+    "×/j": "×/d",
+    "à corriger": "needs fixing",
+    "… et {n} autres": "… and {n} more",
+    "≤ 1 Mo": "≤ 1 MiB",
+}

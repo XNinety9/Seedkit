@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, tracker_dot, empty %}
+{% block title %}{{ _("Trackers & règles") }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <div class="eyebrow">{{ _("Trackers & règles") }}</div>
+    <h1>{{ _("Tes trackers et leurs exigences") }}</h1>
+    <p>{{ _("Regroupe les domaines d'un même tracker, puis indique ses exigences Hit & Run. Un tracker sans règle est <strong>intouchable</strong> : seedkit ne proposera jamais d'en supprimer les torrents.") }}</p>
+  </div>
+  <div class="row">
+    <a class="btn" href="/rules.yaml">{{ icon("download", "sm") }} {{ _("Exporter") }}</a>
+    <form method="post" action="/rules/import" enctype="multipart/form-data" class="row">
+      <label class="btn" style="cursor:pointer">{{ icon("upload", "sm") }} {{ _("Importer") }}
+        <input type="file" name="file" accept=".yaml,.yml" required hidden onchange="this.form.submit()">
+      </label>
+    </form>
+  </div>
+</header>
+
+<div class="stack">
+{% for a, b in suggestions %}
+  <div class="callout suggest">
+    {{ icon("merge") }}
+    <div style="flex:1">{{ _("<strong>{a}</strong> et <strong>{b}</strong> semblent être le même tracker. Les regrouper permet de leur appliquer une seule règle H&R et des statistiques communes.", a=a, b=b) }}</div>
+    <form method="post" action="/trackers/merge" class="row">
+      <input type="hidden" name="tracker" value="{{ b }}">
+      <input type="hidden" name="into" value="{{ a }}">
+      <input name="name" placeholder="{{ _('Nom du groupe (ex. Acme)') }}" style="width:200px" aria-label="{{ _('Nom du groupe') }}">
+      <button class="btn sm primary">{{ icon("merge", "sm") }} {{ _("Regrouper") }}</button>
+    </form>
+  </div>
+{% endfor %}
+{% for s in stats %}
+  {% set r = rules.get(s.name) %}
+  <article class="card tracker-card">
+    <div class="card-head" style="margin-bottom:6px">
+      <div>
+        <div class="row" style="gap:10px">{{ tracker_dot(palette.slot(s.name)) }}<span class="name">{{ s.name }}</span>
+          {% if r %}<span class="badge ok">{{ icon("shield", "sm") }} {{ _("règle définie") }}</span>{% else %}<span class="badge plain">{{ _("sans règle · intouchable") }}</span>{% endif %}
+        </div>
+        <div class="row wrap" style="gap:6px; margin-top:8px">
+          {% for domain in s.domains | sort %}<span class="chip mono">{{ domain or _("(aucun tracker)") }}</span>{% endfor %}
+        </div>
+      </div>
+      <details class="row" style="position:relative">
+        <summary class="btn sm" style="list-style:none">{{ icon("pencil", "sm") }} {{ _("Nom & regroupement") }}</summary>
+        <div class="card" style="position:absolute; right:0; top:42px; z-index:5; width:340px; padding:16px">
+          <form method="post" action="/trackers/rename" class="stack" style="gap:8px">
+            <input type="hidden" name="tracker" value="{{ s.name }}">
+            <label class="field">{{ _("Nom affiché") }}<input name="new_name" value="{{ s.name }}" required></label>
+            <button class="btn sm">{{ _("Renommer") }}</button>
+          </form>
+          {% if names | length > 1 %}
+          <form method="post" action="/trackers/merge" class="stack" style="gap:8px; margin-top:14px">
+            <input type="hidden" name="tracker" value="{{ s.name }}">
+            <label class="field">{{ _("Fusionner dans…") }}
+              <select name="into">{% for n in names if n != s.name %}<option>{{ n }}</option>{% endfor %}</select>
+            </label>
+            <button class="btn sm">{{ icon("merge", "sm") }} {{ _("Fusionner") }}</button>
+          </form>
+          {% endif %}
+          {% if s.domains | length > 1 %}
+          <form method="post" action="/trackers/split" style="margin-top:14px">
+            <input type="hidden" name="tracker" value="{{ s.name }}">
+            <button class="btn sm ghost">{{ icon("split", "sm") }} {{ _("Séparer les domaines") }}</button>
+          </form>
+          {% endif %}
+        </div>
+      </details>
+    </div>
+
+    <div class="kv">
+      <div><small>{{ _("Torrents") }}</small><strong>{{ s.count | number }}</strong></div>
+      <div><small>{{ _("Espace") }}</small><strong>{{ s.size | size }}</strong></div>
+      <div><small>{{ _("Uploadé") }}</small><strong>{{ s.uploaded | size }}</strong></div>
+      <div><small>{{ _("Ratio") }}</small><strong>{{ s.ratio | ratio }}</strong></div>
+    </div>
+    <div class="stackbar">
+      {% for status in HnrStatus if s.statuses[status] %}
+        <span style="width:{{ 100 * s.statuses[status] / s.count }}%; background:{{ STATUS_COLORS[status] }}" title="{{ tr(HNR_LABELS[status]) }} : {{ s.statuses[status] }}"></span>
+      {% endfor %}
+    </div>
+    <div class="legend" style="margin:8px 0 16px">
+      {% for status in HnrStatus if s.statuses[status] %}<span><i style="background:{{ STATUS_COLORS[status] }}"></i>{{ tr(HNR_LABELS[status]) }} {{ s.statuses[status] }}</span>{% endfor %}
+    </div>
+
+    <form method="post" action="/trackers/rule" class="rule-form">
+      <input type="hidden" name="tracker" value="{{ s.name }}">
+      <label class="field">{{ _("Seed minimum (heures)") }}
+        <input name="min_seed_hours" inputmode="decimal" placeholder="{{ _('ex. 72') }}" value="{{ '%g' % r.min_seed_hours if r and r.min_seed_hours is not none else '' }}">
+      </label>
+      <label class="field">{{ _("Ratio minimum") }}
+        <input name="min_ratio" inputmode="decimal" placeholder="{{ _('ex. 1') }}" value="{{ '%g' % r.min_ratio if r and r.min_ratio is not none else '' }}">
+      </label>
+      <label class="field">{{ _("Condition") }}
+        <select name="satisfy">
+          <option value="any" {{ "selected" if not r or r.satisfy == "any" }}>{{ _("Au moins une") }}</option>
+          <option value="all" {{ "selected" if r and r.satisfy == "all" }}>{{ _("Les deux") }}</option>
+        </select>
+      </label>
+      <label class="field">{{ _("Notes") }}<input name="notes" value="{{ r.notes if r else '' }}" placeholder="{{ _('ex. 72 h ou ratio 1') }}"></label>
+      <div class="row">
+        <button class="btn primary">{{ _("Mettre à jour") if r else _("Définir la règle") }}</button>
+      </div>
+    </form>
+    {% if r %}
+      <form method="post" action="/trackers/rule/delete" style="margin-top:10px">
+        <input type="hidden" name="tracker" value="{{ s.name }}">
+        <button class="btn sm ghost">{{ icon("x", "sm") }} {{ _("Supprimer la règle") }}</button>
+      </form>
+    {% endif %}
+  </article>
+{% else %}
+  <div class="card">{{ empty("radio-tower", _("Aucun tracker"), _("Les trackers apparaissent après la première collecte.")) }}</div>
+{% endfor %}
+
+{% if orphan_rules %}
+  <article class="card">
+    <div class="card-head"><div><h2>{{ _("Règles sans torrent") }}</h2><div class="sub">{{ _("Règles conservées pour des trackers qui n'ont plus de torrent actif") }}</div></div></div>
+    {% for r in orphan_rules %}
+      <div class="row between" style="padding:6px 0">
+        <span><strong>{{ r.tracker }}</strong> <span class="muted">· {{ _("seed {hours} h · ratio {ratio}", hours=r.min_seed_hours or "–", ratio=r.min_ratio or "–") }}</span></span>
+        <form method="post" action="/trackers/rule/delete"><input type="hidden" name="tracker" value="{{ r.tracker }}"><button class="btn sm ghost">{{ icon("x", "sm") }} {{ _("Supprimer") }}</button></form>
+      </div>
+    {% endfor %}
+  </article>
+{% endif %}
+</div>
+{% endblock %}

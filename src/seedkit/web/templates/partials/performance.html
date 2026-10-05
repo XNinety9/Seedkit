@@ -1,0 +1,52 @@
+{% from "macros.html" import icon, chart, tracker_dot, empty, window_label %}
+<div class="row between wrap" style="margin-bottom:14px">
+  <div>
+    <h2 style="margin:0; font-size:20px; letter-spacing:-0.02em">{{ _("Performance de seed") }}</h2>
+    <div class="muted" style="font-size:13px">{{ _("Efficacité = upload / taille / jour. Plus c'est haut, plus le torrent rapporte pour la place qu'il prend.") }}</div>
+  </div>
+  <div class="seg" role="tablist">
+    {% for w in WINDOWS %}
+      <button class="{{ 'on' if w == d.window }}" hx-get="/?window={{ w }}" hx-target="#performance" hx-swap="innerHTML">{{ window_label(w) }}</button>
+    {% endfor %}
+  </div>
+</div>
+<div class="grid cols-2">
+  {% for kind, rows, title, ic in [("top", d.top, _("Meilleurs seeds"), "trophy"), ("flop", d.flop, _("Moins rentables"), "trending-down")] %}
+  <article class="card">
+    <div class="card-head"><div class="row" style="gap:8px">{{ icon(ic) }}<h2>{{ title }}</h2></div></div>
+    {% if rows %}
+      {% set best = (d.top[0].efficiency if d.top else 0) or 1 %}
+      <div class="bars">
+        {% for r in rows %}
+          <div class="bar-row" title="{{ r.torrent.name }}">
+            <div class="label row" style="gap:0; min-width:0">
+              {% if kind == "top" %}<span class="rank {{ ['gold','silver','bronze'][loop.index0] if loop.index0 < 3 }}">{{ loop.index }}</span>{% endif %}
+              <div style="min-width:0">
+                <div class="ellipsis">{{ r.torrent.name }}</div>
+                <div class="meta row" style="gap:6px">{{ tracker_dot(d.palette.slot(r.tracker)) }}{{ _("{tracker} · {size} · {uploaded} uploadés", tracker=r.tracker, size=r.torrent.size | size, uploaded=r.uploaded | size) }}</div>
+              </div>
+            </div>
+            <div class="value">{{ r.efficiency | number(3) }}<span class="muted" style="font-weight:500"> {{ _("×/j") }}</span></div>
+            <div class="bar-track"><div class="bar-fill {{ 'cold' if kind == 'flop' }}" style="width:{{ [100 * r.efficiency / best, 0.5] | max }}%"></div></div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      {{ empty("clock", _("Pas encore assez de recul"), _("Les torrents complétés depuis moins d'un jour sont ignorés.")) }}
+    {% endif %}
+  </article>
+  {% endfor %}
+</div>
+<article class="card mt">
+  <div class="card-head">
+    <div><h2>{{ _("Carte du seed") }}</h2><div class="sub">{{ _("Chaque point est un torrent. En haut à gauche : petits et très demandés. En bas à droite : gros et dormants.") }}</div></div>
+    <div class="legend">
+      {% for ds in d.charts.scatter.datasets %}<span><i style="background:var(--series-{{ (ds.c % 5) + 1 }}); border-radius:50%"></i>{{ ds.name }} <span class="muted">{{ ds.points | length }}</span></span>{% endfor %}
+    </div>
+  </div>
+  {% if d.charts.scatter.datasets %}
+    {{ chart("scatter", d.charts.scatter, "h-360") }}
+  {% else %}
+    {{ empty("activity", _("Pas encore de données"), _("La carte apparaît dès qu'il y a des torrents complétés.")) }}
+  {% endif %}
+</article>

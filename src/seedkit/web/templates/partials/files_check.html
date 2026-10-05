@@ -1,0 +1,14 @@
+{% from "macros.html" import icon %}
+<article class="card" style="margin-bottom:18px">
+  <div class="card-head">
+    <h2>{{ _("Test de correspondance") }}</h2>
+    {% if check.ok %}<span class="badge ok">{{ icon("check", "sm") }} {{ _("correspondance OK") }}</span>{% else %}<span class="badge at_risk">{{ _("à corriger") }}</span>{% endif %}
+  </div>
+  {% if check.error %}<div class="callout danger">{{ icon("alert") }}<div>{{ check.error }}</div></div>{% endif %}
+  {% for c in check.checked %}
+    <div class="row" style="padding:6px 0; border-bottom:1px solid var(--border); font-size:12.5px">
+      <span style="color:{{ 'var(--good-text)' if c.found else 'var(--critical-text)' }}">{{ icon("check" if c.found else "x-circle", "sm") }}</span>
+      <div style="min-width:0"><div class="mono ellipsis">{{ c.qbit }}</div><div class="mono muted ellipsis">→ {{ c.smb or _("aucune correspondance") }}</div></div>
+    </div>
+  {% endfor %}
+</article>

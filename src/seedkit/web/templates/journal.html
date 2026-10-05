@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, empty %}
+{% block title %}{{ _("Journal") }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <div class="eyebrow">{{ _("Journal") }}</div>
+    <h1>{{ _("Tout ce que seedkit a fait") }}</h1>
+    <p>{{ _("Chaque action envoyée à qBittorrent est consignée ici : suppressions, reannounces, rechecks, tags.") }}</p>
+  </div>
+</header>
+<article class="card flush">
+  {% if entries %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>{{ _("Date") }}</th><th>{{ _("Action") }}</th><th>{{ _("Torrent") }}</th><th>{{ _("Détail") }}</th></tr></thead>
+    <tbody>
+    {% for e in entries %}
+      <tr>
+        <td class="nowrap dim">{{ e.ts | date }}</td>
+        <td><span class="badge {{ 'at_risk' if e.action == 'delete' else 'plain' }}">{{ {"delete": _("suppression"), "reannounce": _("reannounce"), "recheck": _("recheck"), "tags": _("tags")}.get(e.action, e.action) }}</span></td>
+        <td class="name"><div class="ellipsis">{{ e.name or "—" }}</div></td>
+        <td class="dim">{{ tr(e.detail) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+    {{ empty("scroll", _("Journal vide"), _("seedkit n'a encore rien modifié sur ta seedbox. Toutes les écritures sont verrouillées par défaut.")) }}
+  {% endif %}
+</article>
+{% endblock %}
