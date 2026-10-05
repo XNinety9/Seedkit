@@ -100,8 +100,11 @@ def read(settings: Settings) -> str:
     return p.read_text(encoding="utf-8")
 
 
-def load(settings: Settings) -> tuple[str, RuleSet | None, list[tuple[str, str]]]:
-    """(text, ruleset or None, errors)."""
+def load(settings: Settings, create: bool = True) -> tuple[str, RuleSet | None, list[tuple[str, str]]]:
+    """(text, ruleset or None, errors). With create=False a missing file means "no rules" and nothing is written
+    (background jobs must not create the file: only the UI knows the user's language)."""
+    if not create and not path(settings).exists():
+        return "", RuleSet(), []
     text = read(settings)
     try:
         return text, parse(text), []

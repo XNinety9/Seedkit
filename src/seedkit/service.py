@@ -78,7 +78,7 @@ class Service:
                 log.exception("Job %s failed", name)
 
     def _autoclean(self, session, settings) -> None:
-        _, ruleset, errors = rulesfile.load(settings)
+        _, ruleset, errors = rulesfile.load(settings, create=False)
         if errors or ruleset is None or not any(r.auto and r.enabled for r in ruleset.rules):
             return
         autoclean.run(self.client, session, settings, engine.evaluate(session, ruleset))

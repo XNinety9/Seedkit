@@ -157,3 +157,11 @@ def test_autoclean_countdown_resets(session, settings, auto_rules):
     session.commit()
     autoclean.run(client, session, settings, engine.evaluate(session, auto_rules, now=NOW + DAY), now=NOW + DAY)
     assert session.query(AutoPending).count() == 0
+
+
+def test_background_load_never_creates_the_rules_file(settings):
+    from seedkit import rulesfile
+
+    text, ruleset, errors = rulesfile.load(settings, create=False)
+    assert (text, ruleset.rules, errors) == ("", (), [])
+    assert not settings.seedkit_cleanup_rules.exists()
