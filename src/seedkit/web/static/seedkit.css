@@ -434,3 +434,35 @@ table.table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 
 .stack > .badge, .stack > form > .badge { align-self: flex-start; }
 .suggest { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+/* Cleanup rules */
+.rule-card { border-left: 3px solid var(--rule); }
+.dup-unit { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 8px; border-radius: 8px; min-width: 0; }
+.dup-unit .ellipsis { min-width: 0; flex: 1; }
+.dup-unit .mark { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; flex: none; }
+.dup-unit.kept { background: color-mix(in srgb, var(--status-good) 10%, transparent); }
+.dup-unit.kept .mark { background: color-mix(in srgb, var(--status-good) 22%, transparent); color: var(--good-text); }
+.dup-unit.extra { color: var(--text-2); }
+.dup-unit.extra .mark { background: var(--surface-3); color: var(--muted); }
+.editor-layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr); gap: 18px; align-items: start; }
+.editor-card { display: flex; flex-direction: column; }
+.code-editor {
+  font-family: var(--mono) !important; font-size: 13px; line-height: 1.6; min-height: 640px; resize: vertical;
+  border: 0 !important; border-radius: 0 0 var(--radius) var(--radius) !important; padding: 16px 18px !important;
+  background: var(--surface) !important; tab-size: 2; white-space: pre; box-shadow: none !important;
+}
+.ref h4 { margin: 16px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.ref pre { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-size: 12px; overflow: auto; }
+.ref p { font-size: 12.5px; margin: 0; }
+.ref-table td { padding: 4px 8px; font-size: 12px; }
+@media (max-width: 980px) { .editor-layout { grid-template-columns: 1fr; } }
+.rule-group { border-left: 3px solid var(--rule); }
+.rule-summary {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 16px; align-items: center;
+  padding: 14px 18px; cursor: pointer; list-style: none;
+}
+.rule-summary::-webkit-details-marker { display: none; }
+.rule-summary .icon { transition: transform .15s; color: var(--muted); }
+details[open] > .rule-summary { border-bottom: 1px solid var(--border); }
+details[open] > .rule-summary .icon { transform: rotate(90deg); }
+.chip.reason { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }

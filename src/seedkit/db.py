@@ -56,6 +56,28 @@ class Snapshot(Base):
     seeding_time: Mapped[int]
 
 
+class FileSignature(Base):
+    """Fingerprint of a torrent's file list (relative names + sizes), to find the same content twice."""
+
+    __tablename__ = "file_signatures"
+
+    hash: Mapped[str] = mapped_column(String(64), ForeignKey("torrents.hash"), primary_key=True)
+    signature: Mapped[str] = mapped_column(String(64), index=True)
+    file_count: Mapped[int]
+
+
+class AutoPending(Base):
+    """Torrents matched by an automatic cleanup rule, waiting for their grace period to end."""
+
+    __tablename__ = "auto_pending"
+
+    hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    rule: Mapped[str]
+    first_seen: Mapped[int]
+    last_seen: Mapped[int]
+    notified: Mapped[bool] = mapped_column(default=False)
+
+
 class TrackerAlias(Base):
     """Groups several announce domains under one tracker name (e.g. acme.org + tk.acme.net → Acme)."""
 

@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     qbit_verify_tls: bool = True
 
     seedkit_db: Path = Path("data/seedkit.db")
+    seedkit_cleanup_rules: Path = Path("data/cleanup-rules.yaml")
     seedkit_interval_minutes: int = 10
     seedkit_host: str = "0.0.0.0"
     seedkit_port: int = 8337

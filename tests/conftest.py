@@ -47,7 +47,12 @@ def french():
 
 @pytest.fixture
 def settings(tmp_path):
-    return Settings(qbit_url="http://qbit.invalid", seedkit_db=tmp_path / "seedkit.db", seedkit_lang="fr")
+    return Settings(
+        qbit_url="http://qbit.invalid",
+        seedkit_db=tmp_path / "seedkit.db",
+        seedkit_cleanup_rules=tmp_path / "cleanup-rules.yaml",
+        seedkit_lang="fr",
+    )
 
 
 @pytest.fixture

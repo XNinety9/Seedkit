@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from seedkit import analytics, i18n, rules, tui, views
+from seedkit import analytics, cleanup, engine, i18n, rules, tui, views
 from seedkit.collector import store
 from seedkit.config import Settings
 from seedkit.i18n_en import EN
@@ -39,6 +39,8 @@ def used_keys() -> set[str]:
     keys |= {label for _, label in analytics.AGE_BUCKETS}
     keys |= set(views.REASON_ICONS) | {views.OTHERS}
     keys |= set(tui.SeedkitTUI.WINDOW_LABELS.values()) | set(tui.SeedkitTUI.SORT_KEYS)
+    keys |= set(engine.FIELD_LABELS.values()) | set(engine.DUPLICATE_LABELS.values())
+    keys |= {cleanup.DETAIL_WITH_DATA, cleanup.DETAIL_TORRENT_ONLY, cleanup.DETAIL_SHARED}
     return keys
 
 
@@ -91,7 +93,12 @@ FRENCH = re.compile(r"[éèêàùâîôûçœ]|\b(les|des|une|pour|avec|sans|dan
 
 @pytest.mark.parametrize("url", ["/", "/torrents", "/watch", "/trackers", "/cleanup", "/files", "/journal"])
 def test_pages_have_no_french_in_english(tmp_path, url):
-    settings = Settings(qbit_url="http://qbit.invalid", seedkit_db=tmp_path / "db.sqlite", seedkit_lang="en")
+    settings = Settings(
+        qbit_url="http://qbit.invalid",
+        seedkit_db=tmp_path / "db.sqlite",
+        seedkit_cleanup_rules=tmp_path / "rules.yaml",
+        seedkit_lang="en",
+    )
     app = create_app(settings, start_jobs=False, client=FakeClient())
     with app.state.sessions() as session:
         store(

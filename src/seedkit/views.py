@@ -231,3 +231,50 @@ def watch_groups(session: Session, now: int | None = None) -> list[dict]:
 
 def journal(session: Session, limit: int = 200) -> list[ActionLog]:
     return list(session.scalars(select(ActionLog).order_by(ActionLog.ts.desc()).limit(limit)))
+
+
+# Duplicates ------------------------------------------------------------------
+
+
+def duplicate_groups(evaluation, kind: str, limit: int = 24) -> list[dict]:
+    """Duplicate groups of one kind, with the kept copy flagged, biggest reclaimable space first."""
+    from seedkit.ruleset import DEFAULT_KEEP
+
+    strategy = next(
+        (r.keep or DEFAULT_KEEP[kind] for r in (x.rule for x in evaluation.results) if kind in r.duplicate_kinds),
+        DEFAULT_KEEP[kind],
+    )
+    proposed = {m.torrent.hash for m in evaluation.candidates}
+    groups = []
+    for group in evaluation.groups.get(kind, []):
+        kept = {id(u) for u in group.kept(strategy, evaluation.efficiency)}
+        units = [
+            {
+                "label": u.label,
+                "size": u.size,
+                "resolution": u.release.resolution,
+                "copies": len(u.torrents),
+                "kept": id(u) in kept,
+                "proposed": any(t.hash in proposed for t in u.torrents),
+                "ratio": max(t.ratio for t in u.torrents),
+            }
+            for u in group.units
+        ]
+        units.sort(key=lambda u: (not u["kept"], -u["size"]))
+        reclaimable = sum(u["size"] for u in units if not u["kept"])
+        groups.append({"title": _group_title(group), "units": units, "reclaimable": reclaimable})
+    groups.sort(key=lambda g: -g["reclaimable"])
+    return groups[:limit]
+
+
+def _group_title(group) -> str:
+    if group.kind == "same_files":
+        return group.units[0].label
+    if group.kind == "episode_in_pack":
+        title, season = group.key
+        return f"{title.title()} · S{season:02d}"
+    if group.key[0] == "series":
+        _, title, season, episode = group.key
+        return f"{title.title()} · S{season:02d}" + (f"E{episode:02d}" if episode is not None else "")
+    _, title, year = group.key
+    return f"{title.title()} ({year})" if year else title.title()

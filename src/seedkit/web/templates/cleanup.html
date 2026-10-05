@@ -1,53 +1,218 @@
 {% extends "base.html" %}
-{% from "macros.html" import icon, window_label %}
+{% from "macros.html" import icon, empty %}
 {% block title %}{{ _("Nettoyage") }}{% endblock %}
 {% block content %}
 <header class="page-head">
   <div>
     <div class="eyebrow">{{ _("Nettoyage") }}</div>
     <h1>{{ _("Faire de la place, sans risque") }}</h1>
-    <p>{{ _("Seuls les torrents dont le H&R est rempli (ou que le tracker a retirés) peuvent être proposés. Rien n'est supprimé sans aperçu ni confirmation.") }}</p>
+    <p>{{ _("Tes règles décident quoi proposer. Un torrent sans règle H&R, protégé ou dont le H&R n'est pas rempli n'est jamais touché.") }}</p>
+  </div>
+  <div class="row">
+    <a class="btn primary" href="/cleanup/rules">{{ icon("pencil", "sm") }} {{ _("Modifier les règles") }}</a>
   </div>
 </header>
-<div class="grid" style="grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); align-items:start">
-  <form class="card stack" style="gap:16px; position:sticky; top:20px"
-        hx-get="/cleanup" hx-target="#preview" hx-push-url="true" hx-trigger="change, input delay:300ms from:input[type=range]">
-    <div class="card-head" style="margin:0"><h2>{{ _("Critères") }}</h2></div>
-    <div class="field" style="font-size:12.5px; font-weight:600; color:var(--text-2)">{{ _("Trackers") }}
-      <div class="stack" style="gap:6px; margin-top:6px">
-        {% for n in names %}
-          <label class="row" style="gap:8px; font-weight:500; color:var(--text)">
-            <input type="checkbox" name="tracker" value="{{ n }}" {{ "checked" if n in criteria.trackers }}>
-            <span class="ellipsis">{{ n }}</span>
-            {% if n not in rules %}<span class="badge plain" style="margin-left:auto">{{ _("sans règle") }}</span>{% endif %}
-          </label>
+
+{% if errors %}
+  <div class="callout danger" style="margin-bottom:18px">{{ icon("alert") }}
+    <div><strong>{{ _("Le fichier de règles contient des erreurs : aucune règle n'est appliquée.") }}</strong>
+      <ul style="margin:6px 0 0; padding-left:18px">{% for where, msg in errors %}<li><code>{{ where }}</code> — {{ msg }}</li>{% endfor %}</ul>
+      <a href="/cleanup/rules" style="text-decoration:underline">{{ _("Ouvrir l'éditeur") }}</a>
+    </div>
+  </div>
+{% else %}
+
+{% if no_hnr_rules %}
+  <div class="callout warn" style="margin-bottom:18px">{{ icon("shield") }}<div>{{ _("<strong>Aucune règle H&R n'est définie</strong> : tous tes torrents sont intouchables, donc rien ne peut être proposé. Commence par <a href='/trackers' style='text-decoration:underline'>définir les exigences de tes trackers</a>.") }}</div></div>
+{% endif %}
+
+{# Overview ------------------------------------------------------------------------ #}
+<section class="grid cols-3">
+  <article class="card hero span-2">
+    {% set v, u = ev.size | size_parts %}
+    <div class="hero-label">{{ icon("sparkles", "sm") }} {{ _("Espace libérable") }}</div>
+    <div class="row" style="align-items:baseline; gap:10px; margin-top:10px">
+      <span class="hero-value">{{ v }}</span><span class="hero-value" style="font-size:28px">{{ u }}</span>
+    </div>
+    <div style="margin-top:16px">
+      <div class="stackbar" style="height:12px">
+        {% for r in ev.results if r.size %}
+          <span style="width:{{ [100 * r.size / (total or 1), 0.6] | max }}%; background:var(--series-{{ (loop.index0 % 5) + 1 }})" title="{{ r.rule.name }} : {{ r.size | size }}"></span>
         {% endfor %}
-        <span class="muted" style="font-size:12px; font-weight:450">{{ _("Aucun coché = tous.") }}</span>
+        <span style="flex:1; background:var(--surface-3)"></span>
+      </div>
+      <div class="row between muted" style="font-size:12px; margin-top:6px">
+        <span>{{ _("{n} torrents · {pct} % du stock", n=ev.candidates | length, pct=ev.size | pct(total)) }}</span>
+        <span>{{ _("{size} au total", size=total | size) }}</span>
       </div>
     </div>
-    <label class="field">{{ _("Fenêtre d'observation") }}
-      <select name="window">
-        {% for w in WINDOWS %}
-          <option value="{{ w }}" {{ "selected" if w == criteria.window }}>{{ window_label(w, false) | ucfirst }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label class="field">{{ _("Efficacité maximale") }} <span class="hint">{{ _("Go uploadés par Go stocké et par jour") }}</span>
-      {% set eff = criteria.max_efficiency if criteria.max_efficiency is not none else 0.01 %}
-      <input type="range" name="max_efficiency" min="0" max="0.1" step="0.001" value="{{ eff }}"
-             oninput="this.nextElementSibling.textContent = seedkitNumber(Number(this.value), 3) + ' {{ _('×/j') }}'">
-      <output class="mono" style="color:var(--text)">{{ eff | number(3) }} {{ _("×/j") }}</output>
-    </label>
-    <label class="field">{{ _("Seedé depuis au moins (jours)") }}
-      <input type="number" name="min_seed_days" min="0" step="1" value="{{ criteria.min_seed_days | int }}">
-    </label>
-    <label class="row" style="gap:8px; font-size:13px">
-      <input type="hidden" name="unregistered" value="false">
-      <input type="checkbox" name="unregistered" value="true" {{ "checked" if criteria.unregistered }}> {{ _("Inclure les torrents non enregistrés") }}
-    </label>
-  </form>
-  <div id="preview">
-    {% include "partials/cleanup_preview.html" %}
+  </article>
+  <article class="card tile">
+    <div class="tile-label">{{ icon("hard-drive", "sm") }} {{ _("Espace libre sur le disque") }}</div>
+    {% if ev.disk_free is not none %}{% set v, u = ev.disk_free | size_parts %}<div class="tile-value">{{ v }}<small>{{ u }}</small></div>
+    {% else %}<div class="tile-value">–</div>{% endif %}
+    <div class="tile-foot">
+      {% if pending %}{{ _("{n} suppression(s) automatique(s) programmée(s)", n=pending | length) }}
+      {% else %}{{ _("Aucune suppression automatique programmée") }}{% endif %}
+    </div>
+  </article>
+</section>
+
+{# Rules -------------------------------------------------------------------------- #}
+<section class="grid cols-3 mt">
+  {% for r in ev.results %}
+    {% set color = "var(--series-" ~ ((loop.index0 % 5) + 1) ~ ")" %}
+    <article class="card rule-card" style="--rule:{{ color }}{{ '; opacity:.6' if r.inactive }}">
+      <div class="row between" style="align-items:flex-start; gap:8px">
+        <h3 style="margin:0; font-size:14.5px">{{ r.rule.name }}</h3>
+        {% if r.rule.auto %}<span class="badge pending" title="{{ _('Suppression automatique après le délai de grâce') }}">{{ _("auto · {delay}", delay=r.rule.grace | duration) }}</span>
+        {% else %}<span class="badge plain">{{ _("proposition") }}</span>{% endif %}
+      </div>
+      {% if r.inactive %}
+        <div class="muted" style="margin-top:12px; font-size:13px">{{ icon("pause", "sm") }} {{ r.inactive }}</div>
+      {% else %}
+        <div class="row" style="align-items:baseline; gap:8px; margin-top:10px">
+          <span class="tile-value">{{ r.matches | length }}</span>
+          <span class="dim">{{ _("torrent(s) · {size}", size=r.size | size) }}</span>
+        </div>
+        {% if r.blocked %}
+          {% set most = r.blocked.values() | max %}
+          <div class="stack" style="gap:6px; margin-top:10px">
+            {% for why, n in r.blocked.items() %}
+              <div title="{{ _('Correspondent à la règle mais sont protégés') }}">
+                <div class="row between" style="font-size:12px"><span class="muted">{{ icon("lock", "sm") }} {{ why }}</span><span class="dim">{{ n }}</span></div>
+                <div class="progress" style="margin-top:3px"><span style="width:{{ 100 * n / most }}%; background:var(--status-neutral)"></span></div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endif %}
+    </article>
+  {% else %}
+    <article class="card span-3">{{ empty("sparkles", _("Aucune règle"), _("Ajoute des règles dans l'éditeur pour commencer.")) }}</article>
+  {% endfor %}
+</section>
+
+{# Automatic countdowns ------------------------------------------------------------------ #}
+{% if pending %}
+<article class="card mt">
+  <div class="card-head">
+    <div><h2>{{ _("Suppressions automatiques programmées") }}</h2><div class="sub">{{ _("Un torrent qui cesse de correspondre à sa règle repart de zéro.") }}</div></div>
+    {% if not settings.seedkit_allow_delete %}<span class="badge lock">{{ icon("lock", "sm") }} {{ _("bloquées : SEEDKIT_ALLOW_DELETE=false") }}</span>{% endif %}
   </div>
-</div>
+  <div class="stack" style="gap:10px">
+    {% for p in pending %}
+      <div>
+        <div class="row between" style="font-size:13px"><span class="ellipsis" title="{{ p.name }}">{{ p.name }}</span>
+          <span class="dim nowrap">{{ p.rule }} · {{ p.size | size }} · {% if p.due <= now %}{{ _("échu") }}{% else %}{{ _("dans {delay}", delay=(p.due - now) | duration) }}{% endif %}</span></div>
+        <div class="progress {{ 'risk' if p.due <= now }}" style="margin-top:4px"><span style="width:{{ 100 * p.progress(now) }}%"></span></div>
+      </div>
+    {% endfor %}
+  </div>
+</article>
+{% endif %}
+
+{# Candidates --------------------------------------------------------------------------- #}
+{% if ev.candidates %}
+{% set claimed = ev.by_rule() %}
+<form method="post" action="/cleanup/delete" class="mt"
+      data-confirm="{{ _('Supprimer {n} torrent(s) de qBittorrent ? Cette action est irréversible.') }}"
+      onsubmit="return confirm(this.dataset.confirm.replace('{n}', this.querySelectorAll('input[name=hashes]:checked').length))">
+  <div class="row between wrap" style="margin-bottom:14px">
+    <div>
+      <h2 style="margin:0; font-size:20px; letter-spacing:-0.02em">{{ _("Candidats") }}</h2>
+      <div class="muted" style="font-size:13px">{{ _("Décoche ce que tu veux garder. Chaque ligne indique la règle et ses raisons.") }}</div>
+    </div>
+    {% if settings.seedkit_allow_delete %}
+      <button class="btn danger">{{ icon("trash", "sm") }} {{ _("Supprimer la sélection") }}</button>
+    {% else %}
+      <button class="btn" disabled title="{{ _('Activer avec SEEDKIT_ALLOW_DELETE=true') }}">{{ icon("lock", "sm") }} {{ _("Suppression verrouillée") }}</button>
+    {% endif %}
+  </div>
+  {% if not settings.seedkit_allow_delete %}
+    <div class="callout warn" style="margin-bottom:14px">{{ icon("lock") }}<div>{{ _("<strong>Mode aperçu.</strong> La suppression est verrouillée tant que <code>SEEDKIT_ALLOW_DELETE=true</code> n'est pas défini. Tu peux explorer les candidats sans aucun risque.") }}</div></div>
+  {% endif %}
+  <div class="stack" style="gap:12px">
+  {% for r in ev.results if claimed.get(r.rule.name) %}
+    {% set rows = claimed[r.rule.name] %}
+    {% set color = "var(--series-" ~ ((loop.index0 % 5) + 1) ~ ")" %}
+    <details class="card flush rule-group" style="--rule:{{ color }}" {{ "open" if loop.first }}>
+      <summary class="rule-summary">
+        <span class="row" style="gap:10px; min-width:0">{{ icon("chevron-right", "sm") }}<strong class="ellipsis">{{ r.rule.name }}</strong></span>
+        <span class="dim nowrap">{{ _("{n} torrents · {size}", n=rows | length, size=rows | sum(attribute="torrent.size") | size) }}</span>
+        <label class="row nowrap" style="gap:6px; font-size:12.5px" onclick="event.stopPropagation()">
+          <input type="checkbox" checked onclick="this.closest('details').querySelectorAll('input[name=hashes]').forEach(c => c.checked = this.checked)"> {{ _("Tout sélectionner") }}
+        </label>
+      </summary>
+      <div class="table-wrap">
+        <table class="table">
+          <tbody>
+          {% for m in rows %}
+            <tr>
+              <td style="width:36px"><input type="checkbox" name="hashes" value="{{ m.torrent.hash }}" checked aria-label="{{ _('Sélectionner') }}"></td>
+              <td class="name">
+                <div class="ellipsis title" title="{{ m.torrent.name }}">{{ m.torrent.name }}</div>
+                <div class="row wrap" style="gap:4px; margin-top:5px">
+                  <span class="chip">{{ m.tracker }} · {{ _("seedé {duration}", duration=m.torrent.seeding_time | duration) }}</span>
+                  {% for why in m.reasons %}<span class="chip reason" title="{{ why }}">{{ why }}</span>{% endfor %}
+                </div>
+              </td>
+              <td class="num">{{ m.torrent.size | size }}</td>
+              <td class="num dim">{{ _("ratio {ratio}", ratio=m.torrent.ratio | ratio) }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  {% endfor %}
+  </div>
+</form>
+{% endif %}
+
+{# Duplicates --------------------------------------------------------------------------- #}
+<section class="mt">
+  <div class="row between wrap" style="margin-bottom:14px">
+    <div>
+      <h2 style="margin:0; font-size:20px; letter-spacing:-0.02em">{{ _("Doublons") }}</h2>
+      <div class="muted" style="font-size:13px">{{ _("Le cross-seed (mêmes fichiers partagés entre trackers) n'est jamais un doublon. ✓ = copie gardée.") }}</div>
+    </div>
+    <div class="seg" role="tablist">
+      {% for kind, label in [("episode_in_pack", _("Épisodes dans un pack")), ("same_files", _("Mêmes fichiers")), ("same_title", _("Même titre"))] %}
+        <a href="#dup-{{ kind }}" class="{{ 'on' if loop.first }}" onclick="document.querySelectorAll('.dup-pane').forEach(p => p.hidden = p.id !== 'dup-{{ kind }}'); this.parentNode.querySelectorAll('a').forEach(a => a.classList.toggle('on', a === this)); return false;">{{ label }} <span class="muted">{{ groups[kind] | length }}</span></a>
+      {% endfor %}
+    </div>
+  </div>
+  {% for kind in ["episode_in_pack", "same_files", "same_title"] %}
+    <div class="dup-pane" id="dup-{{ kind }}" {{ "hidden" if not loop.first }}>
+      {% if groups[kind] %}
+        <div class="grid cols-2">
+          {% for g in groups[kind] %}
+            <article class="card dup-card">
+              <div class="row between" style="gap:10px; margin-bottom:10px">
+                <h3 class="ellipsis" style="margin:0; font-size:14.5px" title="{{ g.title }}">{{ g.title }}</h3>
+                <span class="badge plain nowrap">{{ _("{size} récupérables", size=g.reclaimable | size) }}</span>
+              </div>
+              <div class="stack" style="gap:6px">
+                {% for u in g.units %}
+                  <div class="dup-unit {{ 'kept' if u.kept else 'extra' }}">
+                    <span class="mark">{{ icon("check" if u.kept else "x", "sm") }}</span>
+                    <span class="ellipsis" title="{{ u.label }}">{{ u.label }}</span>
+                    {% if u.resolution %}<span class="chip mono">{{ u.resolution }}p</span>{% endif %}
+                    {% if u.copies > 1 %}<span class="chip" title="{{ _('Cross-seed : mêmes données sur plusieurs torrents') }}">×{{ u.copies }}</span>{% endif %}
+                    {% if u.proposed %}<span class="badge pending">{{ _("proposé") }}</span>{% endif %}
+                    <span class="dim num" style="margin-left:auto">{{ u.size | size }}</span>
+                  </div>
+                {% endfor %}
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="card">{{ empty("check", _("Aucun doublon de ce type"), _("Rien à signaler ici.")) }}</div>
+      {% endif %}
+    </div>
+  {% endfor %}
+</section>
+{% endif %}
 {% endblock %}

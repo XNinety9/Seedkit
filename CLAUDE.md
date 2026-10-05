@@ -24,7 +24,12 @@ uv run seedkit check | serve | collect | tui | backup DIR
 - `analytics.py` : `Catalog` (alias + règles), upload par fenêtre (deltas entre snapshots), efficacité, classements,
   stats par tracker, liste « à surveiller ».
 - `trackers.py` : renommer / fusionner / séparer les trackers, règles, export/import YAML, suggestions de fusion.
-- `cleanup.py` : candidats (aperçu) et suppression, avec la porte de sécurité `eligible()`.
+- `cleanup.py` : suppression avec la porte de sécurité `eligible()` et la garde cross-seed (données partagées
+  jamais supprimées).
+- Moteur de règles de nettoyage : `ruleset.py` (format YAML, validation, messages d'erreur localisés),
+  `engine.py` (évaluation + explications), `duplicates.py` (unités par `content_path`, groupes same_files /
+  same_title / episode_in_pack), `releases.py` (analyse des noms de release), `autoclean.py` (règles `auto`,
+  délai de grâce, table `AutoPending`), `rulesfile.py` (fichier `data/cleanup-rules.yaml`, modèles FR/EN).
 - `actions.py` : reannounce, recheck, tags (verrou `SEEDKIT_ALLOW_ACTIONS`).
 - `retention.py`, `notify.py` (ntfy/Discord), `smb.py` (orphelins/manquants, lecture seule), `backup.py`.
 - `service.py` : tâches de fond (collecte, alertes, résumé, tags, compactage, scan SMB).
@@ -43,6 +48,10 @@ uv run seedkit check | serve | collect | tui | backup DIR
 - Un tracker **sans règle est intouchable** : jamais proposé à la suppression.
 - Toute écriture vers qBittorrent est verrouillée par défaut ; une suppression passe par un **aperçu puis une
   confirmation**, et `cleanup.delete` revérifie chaque torrent. Le module SMB ne supprime jamais rien.
+- Une règle de nettoyage ne contourne jamais les garde-fous : sans règle H&R, H&R non rempli ou protégé = jamais
+  sélectionné. Dans le doute (ex. qualité inconnue), le moteur garde le torrent.
+- Les tests ne doivent jamais écrire dans `data/` : la fixture `settings` pointe la base et le fichier de règles
+  vers `tmp_path`.
 - Les écritures se testent avec `tests/fakes.FakeClient`, jamais contre une vraie seedbox.
 - Graphiques : la couleur suit le tracker (`views.Palette`), palette validée (dataviz) dans `seedkit.css`.
 - L'interface est en français et en anglais US, le code et les commentaires en anglais.

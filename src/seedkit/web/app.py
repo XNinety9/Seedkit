@@ -7,18 +7,20 @@ from urllib.parse import urlencode
 
 import yaml
 from apscheduler.schedulers.background import BackgroundScheduler
-from fastapi import FastAPI, Form, HTTPException, Query, Request, UploadFile
+from fastapi import FastAPI, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from seedkit import actions, analytics, cleanup, i18n, trackers, views
+from seedkit import actions, analytics, autoclean, cleanup, engine, i18n, rulesfile, trackers, views
 from seedkit.config import Settings, get_settings
 from seedkit.db import Torrent, make_engine, make_sessionmaker
 from seedkit.i18n import t as tr
 from seedkit.rules import HNR_LABELS, HnrStatus
+from seedkit.ruleset import RuleSetError
+from seedkit.ruleset import parse as parse_rules
 from seedkit.service import Service, last_smb_scan
 from seedkit.web import api
 from seedkit.web.format import FILTERS
@@ -87,8 +89,8 @@ def js_strings() -> dict:
 
 def create_app(settings: Settings | None = None, start_jobs: bool = True, client=None) -> FastAPI:
     settings = settings or get_settings()
-    engine = make_engine(settings.seedkit_db)
-    sessions = make_sessionmaker(engine)
+    db_engine = make_engine(settings.seedkit_db)
+    sessions = make_sessionmaker(db_engine)
     service = Service(settings, sessions, client=client)
 
     @asynccontextmanager
@@ -109,7 +111,7 @@ def create_app(settings: Settings | None = None, start_jobs: bool = True, client
         yield
         if scheduler:
             scheduler.shutdown(wait=False)
-        engine.dispose()
+        db_engine.dispose()
 
     app = FastAPI(title="seedkit", lifespan=lifespan)
     app.state.sessions = sessions
@@ -296,53 +298,92 @@ def create_app(settings: Settings | None = None, start_jobs: bool = True, client
 
     # Cleanup ----------------------------------------------------------------------
 
+    def cleanup_context(session: Session, ruleset) -> dict:
+        evaluation = engine.evaluate(session, ruleset)
+        total = analytics.overview(session)["size"]
+        groups = {
+            kind: views.duplicate_groups(evaluation, kind) for kind in ("episode_in_pack", "same_files", "same_title")
+        }
+        return {
+            "ev": evaluation,
+            "total": total,
+            "pending": autoclean.pending(session, evaluation),
+            "groups": groups,
+            "no_hnr_rules": not analytics.Catalog.load(session).rules,
+        }
+
     @app.get("/cleanup", response_class=HTMLResponse)
-    def cleanup_page(
-        request: Request,
-        tracker: list[str] = Query([]),
-        window: str = "30d",
-        max_efficiency: str = "0.01",
-        min_seed_days: str = "0",
-        unregistered: bool = True,
-        all_efficiency: bool = False,
-    ):
-        if window not in analytics.WINDOWS:
-            raise HTTPException(400)
-        criteria = cleanup.Criteria(
-            trackers=[t for t in tracker if t],
-            window=window,
-            max_efficiency=None if all_efficiency else _float(max_efficiency),
-            min_seed_days=_float(min_seed_days) or 0,
-            unregistered=unregistered,
-        )
-        with db(request) as session:
-            preview = cleanup.preview(session, criteria)
-            names = trackers.known_names(session)
-            total = analytics.overview(session)["size"]
-            rules = analytics.Catalog.load(session).rules
-        template = "partials/cleanup_preview.html" if is_htmx(request) else "cleanup.html"
-        return render(
-            request,
-            template,
-            page="cleanup",
-            preview=preview,
-            criteria=criteria,
-            names=names,
-            total=total,
-            rules=rules,
-        )
+    def cleanup_page(request: Request):
+        _, ruleset, errors = rulesfile.load(settings)
+        ctx = {"errors": errors, "rules_path": str(rulesfile.path(settings))}
+        if ruleset is not None:
+            with db(request) as session:
+                ctx |= cleanup_context(session, ruleset)
+        return render(request, "cleanup.html", page="cleanup", **ctx)
 
     @app.post("/cleanup/delete")
-    def cleanup_delete(request: Request, hashes: list[str] = Form(...), delete_files: bool = Form(False)):
+    def cleanup_delete(request: Request, hashes: list[str] = Form(...)):
+        _, ruleset, _ = rulesfile.load(settings)
+        if ruleset is None:
+            return _back(request, "/cleanup", toast=tr("Le fichier de règles contient des erreurs."))
+        deleted = []
         try:
             with db(request) as session:
-                deleted = cleanup.delete(service.client, session, settings, hashes, delete_files)
+                # Only current candidates can be deleted, with the options of the rule that selected them.
+                by_rule: dict[str, list[str]] = {}
+                rules_by_name = {}
+                for m in engine.evaluate(session, ruleset).candidates:
+                    if m.torrent.hash in hashes:
+                        by_rule.setdefault(m.rule.name, []).append(m.torrent.hash)
+                        rules_by_name[m.rule.name] = m.rule
+                for name, selected in by_rule.items():
+                    rule = rules_by_name[name]
+                    deleted += cleanup.delete(service.client, session, settings, selected, rule.delete_files, rule=name)
         except cleanup.DeletionDisabled as exc:
             return _back(request, "/cleanup", toast=str(exc))
         freed = FILTERS["size"](sum(t.size for t in deleted))
         return _back(
             request, "/cleanup", toast=tr("{n} torrent(s) supprimé(s), {size} libérés", n=len(deleted), size=freed)
         )
+
+    @app.get("/cleanup/rules", response_class=HTMLResponse)
+    def rules_editor(request: Request):
+        text, _, errors = rulesfile.load(settings)
+        return render(
+            request,
+            "rules_editor.html",
+            page="cleanup",
+            text=text,
+            errors=errors,
+            fields=engine.field_reference(),
+            rules_path=str(rulesfile.path(settings)),
+        )
+
+    @app.post("/cleanup/rules/check", response_class=HTMLResponse)
+    def rules_check(request: Request, text: str = Form("")):
+        try:
+            ruleset = parse_rules(text)
+        except RuleSetError as exc:
+            return render(request, "partials/rules_check.html", errors=exc.errors, ev=None)
+        with db(request) as session:
+            evaluation = engine.evaluate(session, ruleset)
+        return render(request, "partials/rules_check.html", errors=[], ev=evaluation)
+
+    @app.post("/cleanup/rules")
+    def rules_save(request: Request, text: str = Form("")):
+        try:
+            rulesfile.save(settings, text)
+        except RuleSetError as exc:
+            return render(
+                request,
+                "rules_editor.html",
+                page="cleanup",
+                text=text,
+                errors=exc.errors,
+                fields=engine.field_reference(),
+                rules_path=str(rulesfile.path(settings)),
+            )
+        return RedirectResponse("/cleanup?" + urlencode({"toast": tr("Règles enregistrées")}), status_code=303)
 
     # Files (SMB) ------------------------------------------------------------------
 

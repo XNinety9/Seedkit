@@ -8,11 +8,11 @@ import time
 import qbittorrentapi
 from sqlalchemy.orm import sessionmaker
 
-from seedkit import actions, i18n, notify, retention, smb
-from seedkit.collector import store
+from seedkit import actions, autoclean, engine, i18n, notify, retention, rulesfile, smb
+from seedkit.collector import missing_signatures, store, store_free_space, store_signatures
 from seedkit.config import Settings
 from seedkit.db import KeyValue
-from seedkit.qbit import fetch_torrents, make_client
+from seedkit.qbit import fetch_free_space, fetch_signatures, fetch_torrents, make_client
 
 log = logging.getLogger(__name__)
 
@@ -37,6 +37,8 @@ class Service:
             torrents = fetch_torrents(self.client)
             with self.sessions() as session:
                 store(session, torrents)
+                store_free_space(session, fetch_free_space(self.client))
+                store_signatures(session, fetch_signatures(self.client, missing_signatures(session)))
             self.last_run, self._error = int(time.time()), None
         except qbittorrentapi.LoginFailed:
             self._fail("authentification refusée par qBittorrent (vérifie la clé d'API ou les identifiants)")
@@ -61,7 +63,11 @@ class Service:
         log.warning(message.format(**kwargs))
 
     def _after_collect(self) -> None:
-        jobs = [("alertes", notify.check_alerts), ("résumé", notify.maybe_send_summary)]
+        jobs = [
+            ("alertes", notify.check_alerts),
+            ("résumé", notify.maybe_send_summary),
+            ("nettoyage auto", self._autoclean),
+        ]
         if self.settings.seedkit_auto_tags and self.settings.seedkit_allow_actions:
             jobs.append(("tags", lambda s, st: actions.sync_tags(self.client, s, st)))
         for name, job in jobs:
@@ -70,6 +76,12 @@ class Service:
                     job(session, self.settings)
             except Exception:
                 log.exception("Job %s failed", name)
+
+    def _autoclean(self, session, settings) -> None:
+        _, ruleset, errors = rulesfile.load(settings)
+        if errors or ruleset is None or not any(r.auto and r.enabled for r in ruleset.rules):
+            return
+        autoclean.run(self.client, session, settings, engine.evaluate(session, ruleset))
 
     def compact(self) -> None:
         with self.sessions() as session:

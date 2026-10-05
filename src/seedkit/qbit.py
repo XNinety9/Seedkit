@@ -1,5 +1,6 @@
 """Thin wrapper around qbittorrent-api returning plain dataclasses."""
 
+import hashlib
 import re
 from dataclasses import dataclass
 from urllib.parse import urlparse
@@ -120,3 +121,37 @@ def fetch_torrents(client: qbittorrentapi.Client) -> list[TorrentData]:
             )
         )
     return result
+
+
+def file_signature(files) -> tuple[str, int]:
+    """Stable fingerprint of a file list; the top-level folder name is ignored so renamed copies still match."""
+    entries = []
+    for f in files:
+        name = f["name"].replace("\\", "/")
+        relative = name.split("/", 1)[1] if "/" in name else name
+        entries.append(f"{relative}|{f['size']}")
+    digest = hashlib.sha1("\n".join(sorted(entries)).encode()).hexdigest()
+    return digest, len(entries)
+
+
+def fetch_signatures(client: qbittorrentapi.Client, hashes: list[str]) -> dict[str, tuple[str, int]]:
+    """File signatures of the given torrents (read-only). One request when the API allows it."""
+    if not hashes:
+        return {}
+    if len(hashes) > 5 and version_tuple(client.app.web_api_version) >= (2, 11, 7):
+        infos = client.torrents_info(include_files=True, torrent_hashes=hashes)
+        return {t.hash: file_signature(t.get("files", [])) for t in infos if t.get("files")}
+    result = {}
+    for h in hashes:
+        files = client.torrents_files(torrent_hash=h)
+        if files:
+            result[h] = file_signature(files)
+    return result
+
+
+def fetch_free_space(client: qbittorrentapi.Client) -> int | None:
+    """Free space on qBittorrent's download disk, in bytes (read-only)."""
+    try:
+        return int(client.sync_maindata().get("server_state", {}).get("free_space_on_disk"))
+    except (TypeError, ValueError):
+        return None

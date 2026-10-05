@@ -19,7 +19,8 @@
         <td class="nowrap dim">{{ e.ts | date }}</td>
         <td><span class="badge {{ 'at_risk' if e.action == 'delete' else 'plain' }}">{{ {"delete": _("suppression"), "reannounce": _("reannounce"), "recheck": _("recheck"), "tags": _("tags")}.get(e.action, e.action) }}</span></td>
         <td class="name"><div class="ellipsis">{{ e.name or "—" }}</div></td>
-        <td class="dim">{{ tr(e.detail) }}</td>
+        {% set what, _sep, rule = e.detail.partition("|") %}
+        <td class="dim">{{ tr(what) }}{% if rule %} · <span class="badge plain">{{ rule }}</span>{% endif %}</td>
       </tr>
     {% endfor %}
     </tbody>

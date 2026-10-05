@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon %}
+{% block title %}{{ _("Règles de nettoyage") }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <div class="eyebrow"><a href="/cleanup">{{ _("Nettoyage") }}</a> · {{ _("Règles") }}</div>
+    <h1>{{ _("Règles de nettoyage") }}</h1>
+    <p>{{ _("Le fichier est vérifié pendant que tu écris, et l'aperçu montre ce que chaque règle sélectionnerait. Rien n'est appliqué avant l'enregistrement.") }}
+      <span class="mono muted" style="font-size:12px">{{ rules_path }}</span></p>
+  </div>
+</header>
+<form method="post" action="/cleanup/rules" class="editor-layout">
+  <div class="card flush editor-card">
+    <div class="card-head" style="padding:14px 18px; margin:0; border-bottom:1px solid var(--border)">
+      <h2>cleanup-rules.yaml</h2>
+      <div class="row">
+        <a class="btn sm ghost" href="/cleanup">{{ _("Annuler") }}</a>
+        <button class="btn sm primary">{{ icon("check", "sm") }} {{ _("Enregistrer") }}</button>
+      </div>
+    </div>
+    <textarea name="text" id="rules-text" class="code-editor" spellcheck="false" autocomplete="off"
+              hx-post="/cleanup/rules/check" hx-trigger="input changed delay:500ms, load" hx-target="#rules-check">{{ text }}</textarea>
+  </div>
+  <aside class="stack">
+    <div id="rules-check">
+      {% if errors %}{% include "partials/rules_check.html" %}{% endif %}
+    </div>
+    <details class="card" open>
+      <summary style="cursor:pointer; font-weight:650">{{ _("Aide-mémoire") }}</summary>
+      <div class="ref">
+        <h4>{{ _("Structure") }}</h4>
+        <pre class="mono">version: 1
+protect:
+  - name: …
+    when: { tag: keep }
+rules:
+  - name: …
+    when: { … }
+    keep: best_ratio      # {{ _("doublons") }}
+    select: { order_by: efficiency_30d, until_free: 200 GiB }
+    delete_files: true
+    auto: false           # {{ _("suppression automatique") }}
+    grace: 3d</pre>
+        <h4>{{ _("Conditions") }}</h4>
+        <p class="muted">{{ _("Toutes les conditions d'un « when » doivent être vraies. Combine avec any: [...], all: [...], not: {...}.") }}</p>
+        <table class="table ref-table">
+          {% for name, kind, label in fields %}
+            <tr><td class="mono">{{ name }}</td><td class="muted">{{ label }}</td><td class="mono dim">{{ {"size": '"< 500 MiB"', "duration": '">= 45d"', "float": '"< 0.01"', "int": '">= 3"', "str": "Acme", "tags": "keep", "text": '"~ 1080p"', "bool": "true", "duplicate": "same_title"}[kind] }}</td></tr>
+          {% endfor %}
+        </table>
+        <h4>{{ _("Valeurs") }}</h4>
+        <p class="muted">{{ _("Opérateurs : >=, <=, >, <, ==, != et les intervalles « 1..5 GiB ». Tailles : MiB, GiB, TiB (ou Mo, Go, To). Durées : h, d, w, mo, y. Une liste vaut « l'un de ».") }}</p>
+        <h4>{{ _("Doublons") }}</h4>
+        <p class="muted"><code>same_files</code>, <code>same_title</code>, <code>episode_in_pack</code> · keep : <code>highest_quality</code>, <code>best_ratio</code>, <code>best_efficiency</code>, <code>most_seeders</code>, <code>oldest</code>, <code>newest</code>, <code>largest</code>, <code>smallest</code></p>
+      </div>
+    </details>
+  </aside>
+</form>
+<script>
+  // Tab inserts two spaces instead of leaving the editor.
+  document.getElementById("rules-text").addEventListener("keydown", (e) => {
+    if (e.key !== "Tab") return;
+    e.preventDefault();
+    const t = e.target, s = t.selectionStart;
+    t.setRangeText("  ", s, t.selectionEnd, "end");
+  });
+</script>
+{% endblock %}

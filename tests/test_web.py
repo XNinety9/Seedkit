@@ -40,7 +40,7 @@ PAGES = [
     "/watch",
     "/trackers",
     "/cleanup",
-    "/cleanup?tracker=acme.org&window=all&max_efficiency=0.5&unregistered=false",
+    "/cleanup/rules",
     "/files",
     "/journal",
     "/api/status",
@@ -72,8 +72,8 @@ def test_merge_rule_and_cleanup_flow(settings):
         client.post("/trackers/rule", data={"tracker": "Acme", "min_seed_hours": "72", "min_ratio": "1,5"})
         exported = client.get("/rules.yaml").text
         assert "Acme:" in exported and "min_ratio: 1.5" in exported
-        page = client.get("/cleanup?window=all")
-        assert "Suppression verrouillée" in page.text and "non enregistré" in page.text
+        page = client.get("/cleanup")
+        assert "Suppression verrouillée" in page.text and "Retirés du tracker" in page.text
 
 
 def test_delete_locked_sends_nothing(settings):
@@ -95,7 +95,8 @@ def test_delete_unlocked(settings):
         with client.app.state.sessions() as session:
             assert session.get(Torrent, "b" * 40).removed_at is not None
         assert "suppression" in client.get("/journal").text
-    assert fake.calls == [("torrents_delete", {"delete_files": False, "torrent_hashes": ["b" * 40]})]
+    # selected by the default "unregistered" rule, which deletes the data
+    assert fake.calls == [("torrents_delete", {"delete_files": True, "torrent_hashes": ["b" * 40]})]
 
 
 def test_actions_locked(settings):
@@ -109,3 +110,32 @@ def test_actions_locked(settings):
 def test_import_rejects_garbage(settings):
     with make_client(settings) as client:
         assert client.post("/rules/import", files={"file": ("r.yaml", "- a\n- b")}).status_code == 400
+
+
+def test_rules_editor_check_and_save(settings):
+    with make_client(settings) as client:
+        page = client.get("/cleanup/rules").text
+        assert "Retirés du tracker" in page  # default template created on first visit
+        bad = client.post("/cleanup/rules/check", data={"text": "rules: [{name: x, when: {seed_time: 45d}}]"}).text
+        assert "opérateur manquant" in bad and "rules[0].when.seed_time" in bad
+        good = client.post("/cleanup/rules/check", data={"text": "rules: [{name: Gone, when: {unregistered: true}}]"})
+        assert "Règles valides" in good.text and "Gone" in good.text
+
+        # an invalid file is never written
+        r = client.post("/cleanup/rules", data={"text": "rules: [{when: {}}]"})
+        assert "chaque règle doit avoir un nom" in r.text
+        assert "Retirés du tracker" in settings.seedkit_cleanup_rules.read_text()
+
+        r = client.post("/cleanup/rules", data={"text": "rules: [{name: Gone, when: {unregistered: true}}]"})
+        assert r.status_code == 200 and "Gone" in r.text
+        assert settings.seedkit_cleanup_rules.read_text().startswith("rules: [{name: Gone")
+        assert settings.seedkit_cleanup_rules.with_suffix(".yaml.bak").exists()
+
+
+def test_cleanup_page_with_broken_rules_file(settings):
+    settings.seedkit_cleanup_rules.write_text("rules: oops")
+    with make_client(settings) as client:
+        page = client.get("/cleanup").text
+        assert "aucune règle n'est appliquée" in page
+        r = client.post("/cleanup/delete", data={"hashes": ["b" * 40]}, follow_redirects=False)
+        assert "erreurs" in unquote_plus(r.headers["location"])

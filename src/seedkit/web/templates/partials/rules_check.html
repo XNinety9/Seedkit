@@ -1,0 +1,29 @@
+{% from "macros.html" import icon %}
+{% if errors %}
+  <article class="card" style="border-color:color-mix(in srgb, var(--status-critical) 45%, transparent)">
+    <div class="card-head" style="margin-bottom:10px"><h3 style="color:var(--critical-text)">{{ icon("x-circle", "sm") }} {{ _("{n} erreur(s)", n=errors | length) }}</h3></div>
+    <div class="stack" style="gap:8px">
+      {% for where, msg in errors %}
+        <div style="font-size:13px"><code style="color:var(--critical-text)">{{ where }}</code><div class="dim">{{ msg }}</div></div>
+      {% endfor %}
+    </div>
+  </article>
+{% elif ev %}
+  <article class="card" style="border-color:color-mix(in srgb, var(--status-good) 40%, transparent)">
+    <div class="card-head" style="margin-bottom:10px">
+      <h3 style="color:var(--good-text)">{{ icon("check", "sm") }} {{ _("Règles valides") }}</h3>
+      <span class="dim">{{ _("{n} torrents · {size}", n=ev.candidates | length, size=ev.size | size) }}</span>
+    </div>
+    {% set biggest = (ev.results | map(attribute="size") | max) if ev.results else 0 %}
+    <div class="bars">
+      {% for r in ev.results %}
+        <div class="bar-row" style="padding:6px 4px">
+          <div class="label"><div class="ellipsis">{{ r.rule.name }}</div>
+            <div class="meta">{% if r.inactive %}{{ r.inactive }}{% else %}{{ _("{n} retenus", n=r.matches | length) }}{% if r.blocked %} · {{ _("{n} protégés", n=r.blocked.values() | sum) }}{% endif %}{% endif %}</div></div>
+          <div class="value">{{ r.size | size }}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:{{ [100 * r.size / (biggest or 1), 0.5 if r.size else 0] | max }}%; background:var(--series-{{ (loop.index0 % 5) + 1 }})"></div></div>
+        </div>
+      {% endfor %}
+    </div>
+  </article>
+{% endif %}

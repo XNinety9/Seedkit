@@ -42,7 +42,7 @@ Autres commandes : `seedkit collect` (une collecte puis quitte), `seedkit backup
 | **Torrents** | recherche instantanée, filtres, tri, progression H&R de chaque torrent |
 | **À surveiller** | non enregistrés, erreurs, trackers en panne, H&R en danger, métadonnées bloquées, téléchargements morts |
 | **Trackers & règles** | regroupement des domaines (ex. `acme.org` + `tk.acme.net` → « Acme »), règles H&R, export/import YAML |
-| **Nettoyage** | candidats à la suppression avec aperçu de l'espace libéré ; suppression verrouillée par défaut |
+| **Nettoyage** | moteur de règles (YAML) : candidats expliqués règle par règle, doublons, suppressions automatiques avec délai de grâce ; éditeur avec validation et aperçu en direct |
 | **Fichiers (SMB)** | fichiers orphelins et manquants, en lecture seule |
 | **Journal** | toutes les actions envoyées à qBittorrent |
 
@@ -62,6 +62,51 @@ Autres commandes : `seedkit collect` (une collecte puis quitte), `seedkit backup
 | H&R en cours | pas encore remplies, le torrent seed normalement |
 | H&R en danger | pas remplies **et** le torrent ne seed pas (pause, erreur, non enregistré, tracker en panne) |
 | sans règle | aucune règle définie pour ce tracker |
+
+## Règles de nettoyage
+
+Le nettoyage est piloté par un fichier YAML (`SEEDKIT_CLEANUP_RULES`, par défaut `data/cleanup-rules.yaml`, créé
+avec des exemples commentés à la première visite). Il se modifie depuis l'écran *Nettoyage → Modifier les règles*,
+qui le valide pendant la frappe et montre ce que chaque règle sélectionnerait.
+
+```yaml
+version: 1
+protect:                      # passent avant tout
+  - name: Favoris
+    when: { tag: keep }
+rules:
+  - name: Dormants Acme
+    when:
+      tracker: Acme
+      seed_time: ">= 45d"
+      upload_30d: "< 500 MiB"
+      seeders: ">= 5"
+  - name: Épisodes couverts par un pack
+    when: { duplicate: episode_in_pack }
+  - name: Même titre, meilleure qualité
+    when: { duplicate: same_title }
+    keep: highest_quality
+  - name: Disque presque plein
+    when: { disk_free: "< 200 GiB" }
+    select: { order_by: efficiency_30d, until_free: 350 GiB }
+    auto: true                # suppression automatique…
+    grace: 3d                 # …après 3 jours de correspondance continue
+```
+
+- **Conditions** : toutes celles d'un `when` doivent être vraies ; `any: [...]`, `all: [...]`, `not: {...}` pour
+  combiner. Champs : `tracker`, `category`, `tag`, `name` (`"~ regex"`), `state`, `hnr`, `unregistered`,
+  `duplicate`, `size`, `uploaded`, `upload_24h|7d|30d`, `ratio`, `efficiency_24h|7d|30d|all`, `seed_time`, `age`,
+  `inactive`, `seeders`, `leechers`, et les conditions globales `disk_free`, `torrent_count`.
+- **Valeurs** : `>=`, `<=`, `>`, `<`, `==`, `!=`, intervalles `1..5 GiB` ; tailles en MiB/GiB/TiB (ou Mo/Go/To),
+  durées en h/d/w/mo/y ; une liste vaut « l'un de ».
+- **Doublons** : `same_files` (mêmes fichiers stockés deux fois), `same_title` (même film / épisode / saison dans
+  plusieurs releases), `episode_in_pack` (épisodes contenus dans un pack de qualité égale ou supérieure). `keep`
+  choisit la copie gardée : `highest_quality`, `best_ratio`, `best_efficiency`, `most_seeders`, `oldest`,
+  `newest`, `largest`, `smallest`. Le cross-seed (mêmes données sur plusieurs torrents) n'est jamais un doublon.
+- **Garde-fous** : une règle ne peut jamais sélectionner un torrent dont le tracker n'a pas de règle H&R, dont le
+  H&R n'est pas rempli, ou qui est protégé. Des données partagées avec un torrent conservé ne sont jamais
+  supprimées. Une règle `auto` ne supprime que si `SEEDKIT_ALLOW_DELETE=true`, après un délai de grâce pendant
+  lequel le torrent doit correspondre à chaque collecte (une notification part au début du décompte).
 
 ## Sécurité
 
