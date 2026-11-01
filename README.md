@@ -23,13 +23,17 @@ uv run seedkit serve   # dashboard sur http://localhost:8337 + collecte périodi
 uv run seedkit tui     # interface terminal (se connecte au serveur ci-dessus)
 ```
 
-Avec Docker (image multi-architecture amd64/arm64 publiée sur GHCR) :
+Avec Docker Compose (image multi-architecture amd64/arm64 publiée sur GHCR) :
 
 ```sh
-docker run -d --name seedkit -p 8337:8337 -v seedkit-data:/data --env-file .env ghcr.io/xninety9/seedkit:edge
+cp .env.example .env   # puis renseigner QBIT_URL et QBIT_API_KEY
+docker compose up -d   # dashboard sur http://localhost:8337, données dans ./data
+docker compose pull && docker compose up -d   # mise à jour
 ```
 
-`edge` suit la branche `main` ; les versions publiées sont aussi taguées (`0.1.0`, `0.1`, `latest`).
+Le fichier `compose.yaml` force la base et les règles dans le volume `./data` (un chemin relatif dans `.env`
+serait perdu à chaque mise à jour) et fait tourner le conteneur avec ton UID/GID (`SEEDKIT_UID`, `SEEDKIT_GID`,
+1000 par défaut). `edge` suit la branche `main` ; les versions publiées sont aussi taguées (`0.1.0`, `0.1`, `latest`).
 Pour construire l'image soi-même : `docker build -t seedkit .`
 
 Autres commandes : `seedkit collect` (une collecte puis quitte), `seedkit backup <dossier>` (exporte les `.torrent`).

@@ -10,7 +10,7 @@ COPY README.md ./
 COPY src ./src
 RUN uv sync --locked
 
-ENV SEEDKIT_DB=/data/seedkit.db PATH=/app/.venv/bin:$PATH
+ENV SEEDKIT_DB=/data/seedkit.db SEEDKIT_CLEANUP_RULES=/data/cleanup-rules.yaml PATH=/app/.venv/bin:$PATH
 VOLUME /data
 EXPOSE 8337
 HEALTHCHECK CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8337/healthz')"

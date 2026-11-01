@@ -1,0 +1,20 @@
+# seedkit with Docker Compose:  docker compose up -d
+# Configuration comes from .env (see .env.example); data lives in ./data.
+services:
+  seedkit:
+    image: ghcr.io/xninety9/seedkit:edge
+    container_name: seedkit
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Always inside the mounted volume, whatever .env says (a relative path would be lost on upgrade).
+      SEEDKIT_DB: /data/seedkit.db
+      SEEDKIT_CLEANUP_RULES: /data/cleanup-rules.yaml
+      SEEDKIT_HOST: 0.0.0.0
+      SEEDKIT_PORT: "8337"
+    ports:
+      - "8337:8337"
+    volumes:
+      - ./data:/data
+      - /etc/localtime:/etc/localtime:ro  # daily stats and summaries follow the host's time zone
+    user: "${SEEDKIT_UID:-1000}:${SEEDKIT_GID:-1000}"  # files in ./data stay owned by you
